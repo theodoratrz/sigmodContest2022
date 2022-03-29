@@ -17,6 +17,36 @@ families = {
     '0': []
 }
 
+trash = [ "Amazon.com : ",
+                "\d*.\d* ?[Gg][Hh][Zz]",
+                "\d+ ?[Gg][Bb]",
+                "RAM",
+                "HDD",
+                "SSD",
+                "Vology",
+                "downgrade",
+                "[Bb]rand [Nn]ew",
+                "[Ll]aptops?",
+                "[Pp][Cc]",
+                "[Cc]omputers?",
+                "[Aa]ccessories",
+                "[Ww]ireless [Ll]an",
+                "[Ww]in(dows)? ([Xx][Pp]|7|8.1|8|10)( Pro(fessional)?| Home Premium)? ?((64|32)-bit)?",
+                "[Nn]otebook",
+                "[Ll][Ee][Dd]",
+                "[Ii][Pp][Ss]",
+                "[Pp]rocessor",
+                "Core",
+                "[\(\):&]",
+                "\"",
+                ",",
+                " +$",
+                "\|",
+                "ebay",
+                "[Ww]ebcam",
+                "[Bb]est"
+        ]
+
 def clean_x1(data):
     ids = data.filter(items=['id'], axis=1)
     ids = data.values.tolist()
@@ -39,8 +69,8 @@ def clean_x1(data):
         name_number = '0'
         name_family = '0'
 
-        useless = ['amazon', 'other laptops', 'miniprice']
-        for name in useless:
+
+        for name in trash:
             if name in splitted[0] and len(splitted)>1:
                 information = splitted[1]
 

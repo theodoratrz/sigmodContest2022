@@ -9,12 +9,9 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_extraction import text
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 
-from dataset import Dataset
+from utils import Dataset, TRUE_PAIR, FALSE_PAIR
 
 random.seed(42)
-
-TRUE_PAIR = float(1)
-FALSE_PAIR = float(0)
 
 print("Importing data.")
 X_filepath = "../datasets/X1.csv"

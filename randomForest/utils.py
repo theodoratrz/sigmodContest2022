@@ -2,6 +2,9 @@ from typing import List
 
 import numpy as np
 
+TRUE_PAIR = float(1)
+FALSE_PAIR = float(0)
+
 class Dataset:
     def __init__(self) -> None:
         self.x: List[np.ndarray] = []

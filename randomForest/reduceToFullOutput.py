@@ -23,8 +23,8 @@ output = pd.read_csv(output_filepath)
 y_true = []
 y_pred = []
 for index in tqdm(range(Y.shape[0])):
-    leftID = Y.iloc[index]['left_instance_id']
-    rightID = Y.iloc[index]['right_instance_id']
+    leftID = Y.iloc[index]['lid']
+    rightID = Y.iloc[index]['rid']
     label = Y.iloc[index]['label']
     y_true.append(int(label))
 

@@ -17,8 +17,8 @@ TRUE_PAIR = float(1)
 FALSE_PAIR = float(0)
 
 print("Importing data.")
-X_filepath = "../X1.csv"
-Y_filepath = "../Y1.csv"
+X_filepath = "../datasets/X1.csv"
+Y_filepath = "../datasets/Y1.csv"
 X = pd.read_csv(X_filepath)
 Y = pd.read_csv(Y_filepath)
 X_fixed = X.drop(columns=['id'])

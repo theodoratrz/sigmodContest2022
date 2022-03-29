@@ -1,34 +1,20 @@
-from typing import Dict, List, Tuple
+from typing import Dict, Tuple
 import random
-
-import numpy as np
-import pandas as pd
 import string
 import joblib
+
+import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_extraction import text
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 
+from dataset import Dataset
+
+random.seed(42)
+
 TRUE_PAIR = float(1)
 FALSE_PAIR = float(0)
-
-class Dataset:
-    def __init__(self) -> None:
-        self.x = []
-        self.y: List[float] = []
-
-    def __len__(self) -> int:
-        return len(self.y)
-    
-    def addPair(self, a, b, label: int) -> None:
-        pair = np.concatenate((a, b), axis=None)
-        reversePair = np.concatenate((a, b), axis=None)
-
-        # https://stackoverflow.com/questions/14446128/python-append-vs-extend-efficiency
-        self.x.extend((pair, reversePair))
-        self.y.extend((label, label))
-
 
 print("Importing data.")
 X_filepath = "../X1.csv"
@@ -73,8 +59,6 @@ while len(possiblePairs) > 0:
     pair, label = possiblePairs.popitem()
     trainDataset.addPair(X_tfidf[pair[0]], X_tfidf[pair[1]], label)
 
-# X_pairs = possiblePairs.keys()
-# y = possiblePairs.values()
 X_pairs = trainDataset.x
 y = trainDataset.y
 

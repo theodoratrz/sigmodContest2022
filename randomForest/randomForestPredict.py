@@ -1,17 +1,15 @@
-import math
-from typing import Dict, Tuple
+import gc
 
 import string
 import joblib
 
-import numpy as np 
 import pandas as pd
 from sklearn.feature_extraction import text
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-from utils import TRUE_PAIR
+from utils import Batch
 
-def predict(batchMaxSize: int):
+def predict(batchMaxSize: int, verbose: bool = False):
 
     print("Importing data.")
     X = pd.read_csv("./X1.csv")
@@ -23,40 +21,44 @@ def predict(batchMaxSize: int):
     print("Vectorize data.")
     vectorizer = TfidfVectorizer(max_df=0.9, stop_words=text.ENGLISH_STOP_WORDS)
     X_tfidf = vectorizer.fit_transform(X_sum).toarray()
-    tfidfVectorSize = X_tfidf[0].shape
+
+    del X_fixed
+    del X_sum
+    gc.collect()
 
     print("Run classifier.")
     classifier = joblib.load("./classifier.txt")
+    classifier.verbose = 0
 
     results = []
 
     # We predict in batches in order to save memory
-    #batchMaxSize = 50
-    batches = math.ceil(len(X_tfidf) / batchMaxSize)
+    batch = Batch(batchMaxSize)
+    batchesCompleted = 0
+    for i in range(len(X_tfidf)):
+        i_id = X.iloc[i]["id"]
+        for j in range(i+1, len(X_tfidf)):
+            if batch.isFull():
+                batch.makePredictions(classifier)
+                batch.storePredictions(results)
+                batch.reset()
+                batchesCompleted += 1
+                if verbose:
+                    print(f"{batchesCompleted:3} batches done.\r", end="")
+                if len(results) == 1000000:
+                    return results
+            
+            leftItem = X_tfidf[i]
+            rightItem = X_tfidf[j]
+            batch.addPair(leftItem, rightItem, i_id, X.iloc[j]["id"])
 
-    for b in range(batches):
-        limit = min((b+1)*batchMaxSize, len(X_tfidf))
-        #batchSize = limit - b*batchMaxSize
-        batchPairs = []
-        for i in range(b*batchMaxSize, limit - 1):
-            for j in range(i+1, len(X_tfidf)):
-                leftItem = X_tfidf[i]
-                rightItem = X_tfidf[j]
-                newItem = np.concatenate((leftItem, rightItem), axis=None)
-                batchPairs.append(newItem)
-        
-        batchPredictions = classifier.predict(batchPairs)
-        predIndex = 0
-        for i in range(b*batchMaxSize, limit - 1):
-            for j in range(i+1, len(X_tfidf)):
-                if batchPredictions[predIndex] == TRUE_PAIR:
-                    newItem = {
-                        "left_instance_id": X.iloc[i]["id"],
-                        "right_instance_id": X.iloc[j]["id"],
-                    }
-                    results.append(newItem)
-                predIndex += 1
-        
-        print(f"Batch {b} done.")
+    del X
 
+    if batch.isNotEmpty():
+        batch.makePredictions(classifier)
+        batch.storePredictions(results)
+        batch.reset(triggerGC=True)
+        if verbose:
+            print(f"{batchesCompleted:3} batches done.")
+    
     return results

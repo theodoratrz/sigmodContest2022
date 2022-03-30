@@ -1,8 +1,7 @@
-from typing import Dict, Iterable, List, Tuple
-
-from sklearn.ensemble import RandomForestClassifier
-import numpy as np
+from typing import Iterable, List, Dict, Tuple
 import gc
+
+import numpy as np
 
 TRUE_PAIR = float(1)
 FALSE_PAIR = float(0)
@@ -49,18 +48,7 @@ class Batch:
         self.pairIds.append((a_id, b_id))
         self.count += 1
 
-    def reset(self, triggerGC=False) -> None:
-        self.pairs.clear()
-        self.pairIds.clear()
-        self.count = 0
-
-        if triggerGC:
-            gc.collect()
-    
-    def makePredictions(self, classifier: RandomForestClassifier) -> None:
-        self.predictions = classifier.predict(self.pairs)
-
-    def storePredictions(self, container: List[ Dict[str, int] ]):
+    def saveAndReset(self, container: List[ Dict[str, int] ], triggerGC=False) -> None:
         for pairIds, prediction in zip(self.pairIds, self.predictions):
             if prediction == TRUE_PAIR:
                 newItem = {
@@ -68,3 +56,10 @@ class Batch:
                     "right_instance_id": pairIds[1],
                 }
                 container.append(newItem)
+        
+        self.pairs.clear()
+        self.pairIds.clear()
+        self.count = 0
+
+        if triggerGC:
+            gc.collect()

@@ -1,25 +1,30 @@
 import os
 import gc
 import random
+import joblib
 
 import numpy as np
 import pandas as pd
 from randomForestPredict import predict
 
-random.seed(42)
-np.random.seed(42)
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
 
 pd.read_csv("./X2.csv")
 gc.collect()
 
+classifier = joblib.load("./classifier.txt")
+classifier.verbose = 0
+
 if os.getenv('RANDOM_FOREST_DEV_MODE'):
-    x1_results = predict(batchMaxSize=25000, verbose=True)
+    x1_results = predict("./X1.csv", classifier, batchMaxSize=25000, verbose=True)
     output_df = pd.DataFrame(x1_results, columns=["left_instance_id", "right_instance_id"])
     output_df.to_csv("output.csv", index=False)
 else:
     expected_cand_size_X1 = 1000000
     expected_cand_size_X2 = 2000000
-    x1_results = predict(batchMaxSize=50000, verbose=False)
+    x1_results = predict("./X1.csv", classifier, batchMaxSize=50000, verbose=False)
 
     # make sure to include exactly 1000000 pairs for dataset X1 and 2000000 pairs for dataset X2
     X2_candidate_pairs = [(0, 0)] * expected_cand_size_X2

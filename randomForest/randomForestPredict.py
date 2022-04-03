@@ -40,7 +40,7 @@ def predict(inputFilePath: str, classifier: RandomForestClassifier, batchMaxSize
                 batchesCompleted += 1
                 if verbose:
                     print(f"{batchesCompleted:3} batches done.\r", end="")
-                if len(results) == 1000000:
+                if len(results) >= 1000000:
                     return results
             
             leftItem = X_tfidf[i]

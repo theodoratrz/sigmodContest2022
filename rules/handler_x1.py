@@ -44,6 +44,7 @@ instance_list = set()
 def handle_x1(dataset: pd.DataFrame):
 
     dataset = clean_x1(dataset)
+    couples = set()
 
     for index, row in dataset.iterrows():
         instance_id = row['instance_id']
@@ -81,6 +82,7 @@ def handle_x1(dataset: pd.DataFrame):
         pc['capacity'] = capacity
         pc['cpu_core'] = cpu_core
         pc['rest'] = rest_info
+        pc['title'] = title
 
         if pc_name == "8460p" and cpu_model == "2450m":
             pc['identification'] = pc_name + ' ' + cpu_model
@@ -112,9 +114,9 @@ def handle_x1(dataset: pd.DataFrame):
         elif pc_name != '0' and cpu_frequency != '0':
             pc['identification'] = pc_name + ' ' + cpu_frequency
             solved_spec.append(pc)
-        elif rest_info != '0':
-            pc['identification'] = rest_info
-            solved_spec.append(pc)
+        #elif rest_info != '0' and 'tablet' not in rest_info:
+            #pc['identification'] = rest_info
+            #solved_spec.append(pc)
         else:
             unsolved_spec.append(pc)
 
@@ -134,7 +136,8 @@ def handle_x1(dataset: pd.DataFrame):
         else:
             clusters.update({identification: [u['id']]})
 
-    couples = set()
+    dataset.to_csv("solved.csv", sep=',', encoding='utf-8', index=False)
+
     for c in clusters.keys():
         if len(clusters[c]) > 1:
             for i in clusters[c]:
@@ -154,3 +157,4 @@ def handle_x1(dataset: pd.DataFrame):
     output.drop(columns=['label'], inplace=True)
 
     return output
+    

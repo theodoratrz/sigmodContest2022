@@ -1,27 +1,7 @@
-from typing import List
-import string
+from dummy_utils import looksSimilar, cleanInstance
 
 import numpy as np
 import pandas as pd
-
-THRESHOLD = 11
-def looksSimilar(words1: List[str], words2: List[str]):
-    count = 0
-    for w1, w2 in zip(words1, words2):
-        if w1 == w2:
-            count += 1
-            if count == THRESHOLD:
-                return True
-    return False
-
-def cleanInstance(raw: str):
-    raw_low = raw.lower()
-    no_punct = raw_low.translate(str.maketrans({ord(c): ' ' for c in string.punctuation}))
-    words = no_punct.split()
-    words.sort()
-
-    return words, ' '.join(words)
-
 
 X = pd.read_csv("../datasets/X1.csv")
 X_clean = np.empty(shape=X.shape[0], dtype=object)
@@ -36,7 +16,6 @@ for i in range(len(X_clean)):
         a, (a_clean_words, a_clean) = X_clean[i]
         b, (b_clean_words, b_clean) = X_clean[j]
         
-        #if (a_clean == b_clean) or (len(a_clean) == len(b_clean)):
         if (a_clean == b_clean) or looksSimilar(a_clean_words, b_clean_words):
             dummyPairs.append({
                 "left_instance": a,

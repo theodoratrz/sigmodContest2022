@@ -8,7 +8,7 @@ if __name__ == '__main__':
     data = pd.read_csv(file_name)
     ids = data.to_dict('list')
     
-    file_name2 = 'output.csv'
+    file_name2 = 'couples_to_test.csv'
     data2 = pd.read_csv(file_name2)
     id2 = data2.to_dict('list')
     
@@ -32,4 +32,4 @@ if __name__ == '__main__':
     for i in range(len(name)):
         couples.rename({i: name[i]}, inplace=True, axis=1)
 
-    couples.to_csv("mycouples_titles.csv", sep=',', encoding='utf-8', index=False)
+    couples.to_csv("CouplesToTestTitles.csv", sep=',', encoding='utf-8', index=False)

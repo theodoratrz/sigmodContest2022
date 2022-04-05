@@ -177,16 +177,11 @@ def handle_x1(dataset: pd.DataFrame):
                 for j in clusters[c]:
                     if i < j:
                         couples.add((i, j, 1))
+                        if len(couples) == 1000000:
+                            return couples
                     if i > j:
                         couples.add((j, i, 1))
+                        if len(couples) == 1000000:
+                            return couples
 
-    output = couples
-    output = pd.DataFrame(
-        output,
-        columns=[
-            'lid',
-            'rid',
-            'label'])
-    output.drop(columns=['label'], inplace=True)
-
-    return output
+    return couples

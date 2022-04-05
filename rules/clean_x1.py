@@ -20,10 +20,7 @@ families = {
 trash = [ "amazon",
                 "alibaba",
                 "com:",
-                "\d*.\d* ?[Gg][Hh][Zz]",
-                "\d+ ?[Gg][Bb]",
                 "\d+ ?[Tt][Bb]",
-                "ram",
                 "hdd",
                 "ssd",
                 "vology",
@@ -54,7 +51,7 @@ trash = [ "amazon",
                 "-",
                 " +$",
                 "\|",
-                "ebay",
+                "e[Bb]ay",
                 "webcam",
                 "best",
                 "and",
@@ -73,20 +70,17 @@ trash = [ "amazon",
                 "quality"
         ]
 
-def clean_x1(data):
+def clean_X1(data):
     ids = data.filter(items=['id'], axis=1)
     ids = data.values.tolist()
-    info = data.drop(['id'], axis=1)
-    info = info.fillna('')
-    info = info.values.tolist()
+    title = data.drop(['id'], axis=1)
+    title = title.fillna('')
+    title = title.values.tolist()
     splitted_list = []
-    
+
     for row in range(len(ids)):
-        info[row][0] = info[row][0].lower()
-        temp = info[row][0]
-        info[row] = ' '.join(re.sub(r'[^\w\s]', ' ', temp).split())
-        info[row] = info[row].split(" ")
-        info[row].sort()
+        temp = title[row][0].lower()
+        information = temp.split()
 
         brand = '0'
         cpu_brand = '0'
@@ -98,25 +92,37 @@ def clean_x1(data):
         name_number = '0'
         name_family = '0'
 
-        clean_list = []
-        for name in info[row]:
-            if len(name) < 8:
-                if name not in trash:
-                    clean_list.append(name)
-
         row_info = ""
-        for mess in clean_list:
-            if mess not in row_info:
-                row_info = row_info + ' ' + mess
+        for name in information:
+            row_info = row_info + " " + name
 
         for b in brands:
-            if b in row_info:
+            if b in information:
                 brand = b
                 break
+
         for b in cpu_brands:
-            if b in row_info:
+            if b in information:
                 cpu_brand = b
                 break
+
+        result_frequency = re.search(
+            r'[123][ .][0-9]?[0-9]?[ ]?[Gg][Hh][Zz]', row_info)
+        if result_frequency is not None:
+            result_frequency = re.split(r'[GgHhZz]', result_frequency.group())[
+                0].strip().replace(' ', '.')
+            if len(result_frequency) == 3:
+                result_frequency = result_frequency + '0'
+            if len(result_frequency) == 1:
+                result_frequency = result_frequency + '.00'
+            result_frequency = result_frequency
+            cpu_frequency = result_frequency
+        
+
+        for f in families:
+            if f in information:
+                name_family = f
+
         if cpu_brand != 'intel':
             for b in amd_cores:
                 if b in row_info:
@@ -129,6 +135,7 @@ def clean_x1(data):
                     cpu_core = b.strip()
                     cpu_brand = 'intel'
                     break
+
         if cpu_brand == 'intel':
             result_model = re.search(
                 r'[\- ][0-9]{4}[Qq]?[MmUu](?![Hh][Zz])', row_info)
@@ -149,37 +156,77 @@ def clean_x1(data):
                     '[\\- ]((1st)|(2nd)|(3rd)|([4-9]st))[ ][Gg]en', row_info)
             if result_model is not None:
                 cpu_model = result_model.group()[1:].lower()
-        elif cpu_brand == 'amd':
-            if cpu_core == 'a8':
-                cpu_core = 'a-series'
-            result_model = re.search(r'([AaEe][0-9][\- ][0-9]{4})', row_info)
-            if result_model is None:
-                result_model = re.search('[\\- ]HD[\\- ][0-9]{4}', row_info)
-            if result_model is None:
-                result_model = re.search('[\\- ][AaEe][\\- ][0-9]{3}', row_info)
-            if result_model is not None:
-                cpu_core = result_model.group()[:1].lower() + '-series'
-                cpu_model = result_model.group()[1:].lower().replace(' ', '-')
-            if cpu_core in ('radeon', 'athlon', 'turion', 'phenom'):
+            elif cpu_brand == 'amd':
+                if cpu_core == 'a8':
+                    cpu_core = 'a-series'
+                result_model = re.search(r'([AaEe][0-9][\- ][0-9]{4})', row_info)
                 if result_model is None:
-                    result_model = re.search('[\\- ][NnPp][0-9]{3}', row_info)
+                    result_model = re.search('[\\- ]HD[\\- ][0-9]{4}', row_info)
                 if result_model is None:
-                    result_model = re.search(
-                        '[\\- ](64[ ]?[Xx]2)|([Nn][Ee][Oo])', row_info)
+                    result_model = re.search('[\\- ][AaEe][\\- ][0-9]{3}', row_info)
                 if result_model is not None:
-                    cpu_model = result_model.group().lower().replace('-', '').replace(' ', '')
+                    cpu_core = result_model.group()[:1].lower() + '-series'
+                    cpu_model = result_model.group()[1:].lower().replace(' ', '-')
+                if cpu_core in ('radeon', 'athlon', 'turion', 'phenom'):
+                    if result_model is None:
+                        result_model = re.search('[\\- ][NnPp][0-9]{3}', row_info)
+                    if result_model is None:
+                        result_model = re.search(
+                            '[\\- ](64[ ]?[Xx]2)|([Nn][Ee][Oo])', row_info)
+                    if result_model is not None:
+                        cpu_model = result_model.group().lower().replace('-', '').replace(' ', '')
 
-        result_frequency = re.search(
-            r'[123][ .][0-9]?[0-9]?[ ]?[Gg][Hh][Zz]', row_info)
-        if result_frequency is not None:
-            result_frequency = re.split(r'[GgHhZz]', result_frequency.group())[
-                0].strip().replace(' ', '.')
-            if len(result_frequency) == 3:
-                result_frequency = result_frequency + '0'
-            if len(result_frequency) == 1:
-                result_frequency = result_frequency + '.00'
-            result_frequency = result_frequency
-            cpu_frequency = result_frequency
+            if brand == 'lenovo':
+                result_name_number = re.search(
+                    r'[\- ][0-9]{4}[0-9a-zA-Z]{3}(?![0-9a-zA-Z])', row_info)
+                if result_name_number is None:
+                    result_name_number = re.search(
+                        r'[\- ][0-9]{4}(?![0-9a-zA-Z])', row_info)
+                if result_name_number is not None:
+                    name_number = result_name_number.group().replace(
+                        '-', '').strip().lower()[:4]
+            elif brand == 'hp':
+                result_name_number = re.search(r'[0-9]{4}[pPwW]', row_info)
+                if result_name_number is None:
+                    result_name_number = re.search(
+                        r'15[\- ][a-zA-Z][0-9]{3}[a-zA-Z]{2}', row_info)
+                if result_name_number is None:
+                    result_name_number = re.search(r'[\s]810[\s](G2)?', row_info)
+                if result_name_number is None:
+                    result_name_number = re.search(r'[0-9]{4}[mM]', row_info)
+                if result_name_number is None:
+                    result_name_number = re.search(
+                        r'((DV)|(NC))[0-9]{4}', row_info)
+                if result_name_number is None:
+                    result_name_number = re.search(r'[0-9]{4}DX', row_info)
+                if result_name_number is not None:
+                    name_number = result_name_number.group().lower().replace('-', '').replace(' ', '')
+            elif brand == 'dell':
+                result_name_number = re.search(
+                    r'1[57][Rr]?[\s]?([0-9]{4})?[\s]([iI])?[0-9]{4}', row_info)
+                if result_name_number is None:
+                    result_name_number = re.search(
+                        r'[\s][A-Za-z][0-9]{3}[A-Za-z][\s]', row_info)
+                if result_name_number is not None:
+                    name_number = result_name_number.group().lower().replace(
+                        '-', '').replace('i', '').strip().split(' ')[-1]
+            elif brand == 'acer':
+                result_name_number = re.search(
+                    r'[A-Za-z][0-9][\- ][0-9]{3}', row_info)
+                if result_name_number is None:
+                    result_name_number = re.search(r'AS[0-9]{4}', row_info)
+                if result_name_number is None:
+                    result_name_number = re.search(
+                        r'[0-9]{4}[- ][0-9]{4}', row_info)
+                if result_name_number is not None:
+                    name_number = result_name_number.group().lower().replace(' ', '-').replace('-', '')
+                    if len(name_number) == 8:
+                        name_number = name_number[:4]
+            elif brand == 'asus':
+                result_name_number = re.search(
+                    r'[A-Za-z]{2}[0-9]?[0-9]{2}[A-Za-z]?[A-Za-z]', row_info)
+                if result_name_number is not None:
+                    name_number = result_name_number.group().lower().replace(' ', '-').replace('-', '')
 
         if brand == 'lenovo':
             result_name_number = re.search(
@@ -233,12 +280,20 @@ def clean_x1(data):
             if result_name_number is not None:
                 name_number = result_name_number.group().lower().replace(' ', '-').replace('-', '')
 
-        for pattern in families[brand]:
-            result_name_family = re.search(pattern, row_info)
-            if result_name_family is not None:
-                name_family = result_name_family.group().strip()
-                break
-
+        flag = 0
+        information.sort()
+        
+        clean_info = ''
+        sorted_title = ''
+        for name in information:
+            sorted_title = sorted_title + " " + name
+            if name not in trash:
+                clean_info = clean_info + " " + name
+            if len(name) > 8:
+                flag = 1
+            if len(name) > 10:
+                flag = 2
+        
         splitted_list.append([
             ids[row][0],
             brand,
@@ -246,14 +301,14 @@ def clean_x1(data):
             cpu_core,
             cpu_model,
             cpu_frequency,
-            ram_capacity,
-            display_size,
             name_number,
             name_family,
             row_info,
-            info[row]
+            flag,
+            clean_info,
+            sorted_title
         ])
-    
+
     splitted_list = pd.DataFrame(splitted_list)
     name = [
         'instance_id',
@@ -262,12 +317,12 @@ def clean_x1(data):
         'cpu_core',
         'cpu_model',
         'cpu_frequency',
-        'ram_capacity',
-        'display_size',
         'pc_name',
         'family',
-        'rest_info',
-        'title'
+        'title',
+        'flag',
+        'clean_info',
+        'sorted_title'
     ]
     for i in range(len(name)):
         splitted_list.rename({i: name[i]}, inplace=True, axis=1)

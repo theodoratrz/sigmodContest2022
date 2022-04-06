@@ -1,7 +1,7 @@
 from typing import List
 import string
 
-THRESHOLD = 0.75
+THRESHOLD = 0.835
 def looksSimilar(words1: List[str], words2: List[str]):
     common = len(set(words1).intersection(set(words2)))
     return ( 2*common / (len(words1) + len(words2)) ) >= THRESHOLD

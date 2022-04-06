@@ -80,6 +80,7 @@ def handle_x1(dataset: pd.DataFrame):
 
         possible_pairs = []
         possible_large_pairs = []
+        possible_small_pairs = []
         row_info = [instance_id, brand, cpu_brand, cpu_core,cpu_model, cpu_frequency, pc_name, family]
 
         counter = 0
@@ -90,6 +91,9 @@ def handle_x1(dataset: pd.DataFrame):
             if flag == 1:
                 pc['identification'] = sorted_title
                 possible_pairs.append(pc)
+            elif flag == 0:
+                pc['identification'] = title
+                possible_small_pairs.append(pc)
             elif flag == 2:
                 pc['identification'] = title
                 possible_large_pairs.append(pc)
@@ -160,6 +164,11 @@ def handle_x1(dataset: pd.DataFrame):
         else:
           clusters.update({l['identification']: [l['id']]})
 
+    for l in possible_small_pairs:
+        if l['identification'] in clusters.keys():
+            clusters[l['identification']].append(l['id'])
+        else:
+          clusters.update({l['identification']: [l['id']]})
     dataset.to_csv("solved.csv", sep=',', encoding='utf-8', index=False)
 
     for c in clusters.keys():

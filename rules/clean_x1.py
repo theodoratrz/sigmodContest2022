@@ -293,7 +293,8 @@ def clean_X1(data):
                 flag = 1
             if len(name) > 10:
                 flag = 2
-        
+        res = re.sub(r'[^\w\s]', '', clean_info)
+        res1 = re.sub(r'[^\w\s]', '', sorted_title)
         splitted_list.append([
             ids[row][0],
             brand,
@@ -305,8 +306,8 @@ def clean_X1(data):
             name_family,
             row_info,
             flag,
-            clean_info,
-            sorted_title
+            res,
+            res1
         ])
 
     splitted_list = pd.DataFrame(splitted_list)

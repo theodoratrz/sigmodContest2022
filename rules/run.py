@@ -18,17 +18,11 @@ if __name__ == '__main__':
     output = pd.DataFrame(
                 couples,
                 columns=[
-                    'lid',
-                    'rid',
-                    'label'])
-    output.drop(columns=['label'], inplace=True)
+                    'left_instance_id',
+                    'right_instance_id'])
     output.to_csv(
-            "./output.csv",
-            mode='a',
-            sep=',',
-            encoding='utf-8',
-            index=False,
-            header=None)
+            "output.csv",
+            index=False)
 
     """ if Flag:
         output.to_csv("../datasets/output.csv", sep=',', encoding='utf-8', index=False)

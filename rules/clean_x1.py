@@ -283,16 +283,18 @@ def clean_X1(data):
         flag = 0
         information.sort()
         
+        if len(information) > 6:
+            flag = 1
+        if len(information) > 12:
+            flag = 2
+        
         clean_info = ''
         sorted_title = ''
         for name in information:
             sorted_title = sorted_title + " " + name
             if name not in trash:
                 clean_info = clean_info + " " + name
-            if len(name) > 8:
-                flag = 1
-            if len(name) > 10:
-                flag = 2
+        
         res = re.sub(r'[^\w\s]', '', clean_info)
         res1 = re.sub(r'[^\w\s]', '', sorted_title)
         splitted_list.append([

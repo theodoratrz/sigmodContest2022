@@ -87,15 +87,15 @@ def handle_x1(dataset: pd.DataFrame):
         for name in row_info:
             if name == '0':
                 counter+=1
-        if counter > 4:
+        if counter > 3:
+            if flag == 0:
+                pc['identification'] = sorted_title
+                possible_small_pairs.append(pc)
             if flag == 1:
                 pc['identification'] = sorted_title
                 possible_pairs.append(pc)
-            elif flag == 0:
-                pc['identification'] = title
-                possible_small_pairs.append(pc)
             elif flag == 2:
-                pc['identification'] = title
+                pc['identification'] = clean_info
                 possible_large_pairs.append(pc)
         else:
             if (cpu_model + ' ' + family) in model_family_2_pcname.keys():

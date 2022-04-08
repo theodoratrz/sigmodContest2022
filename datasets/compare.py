@@ -8,7 +8,7 @@ if __name__ == '__main__':
     data = pd.read_csv(file_name)
     ids = data.to_dict('list')
     
-    file_name2 = 'output.csv'
+    file_name2 = '/home/theodora/Documents/SigmodContest/sigmodContest2022/rules/output.csv'
     data2 = pd.read_csv(file_name2)
     id2 = data2.to_dict('list')
     

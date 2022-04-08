@@ -118,7 +118,10 @@ def clean_X1(data):
             result_frequency = result_frequency
             cpu_frequency = result_frequency
         
-
+        result_ram_capacity = re.search(
+            r'[1-9][\s]?[Gg][Bb][\s]?((S[Dd][Rr][Aa][Mm])|(D[Dd][Rr]3)|([Rr][Aa][Mm])|(Memory))', row_info)
+        if result_ram_capacity is not None:
+            ram_capacity = result_ram_capacity.group()
         for f in families:
             if f in information:
                 name_family = f
@@ -281,7 +284,14 @@ def clean_X1(data):
                 name_number = result_name_number.group().lower().replace(' ', '-').replace('-', '')
 
         flag = 0
+        information = ' '.join(re.sub(r'[^\w\s]', ' ', temp).split())
+        information = information.split(" ")
         information.sort()
+        
+        if len(information) > 10:
+            flag = 1
+        if len(information) > 20:
+            flag = 2
         
         clean_info = ''
         sorted_title = ''
@@ -289,12 +299,7 @@ def clean_X1(data):
             sorted_title = sorted_title + " " + name
             if name not in trash:
                 clean_info = clean_info + " " + name
-            if len(name) > 8:
-                flag = 1
-            if len(name) > 10:
-                flag = 2
-        res = re.sub(r'[^\w\s]', '', clean_info)
-        res1 = re.sub(r'[^\w\s]', '', sorted_title)
+
         splitted_list.append([
             ids[row][0],
             brand,
@@ -302,12 +307,13 @@ def clean_X1(data):
             cpu_core,
             cpu_model,
             cpu_frequency,
+            ram_capacity,
             name_number,
             name_family,
             row_info,
             flag,
-            res,
-            res1
+            clean_info,
+            sorted_title
         ])
 
     splitted_list = pd.DataFrame(splitted_list)
@@ -318,6 +324,7 @@ def clean_X1(data):
         'cpu_core',
         'cpu_model',
         'cpu_frequency',
+        'capacity',
         'pc_name',
         'family',
         'title',

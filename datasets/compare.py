@@ -23,12 +23,12 @@ if __name__ == '__main__':
         y = (ids['lid'][index], ids['rid'][index])
         couples.append(y)
 
-    for index in range(len(id2['lid'])):
-        y = (id2['lid'][index], id2['rid'][index])
+    for index in range(len(id2['left_instance_id'])):
+        y = (id2['left_instance_id'][index], id2['right_instance_id'][index])
         Allcouples.append(y)
 
-    for index in range(len(id2['lid'])):
-        t = (id2['lid'][index], id2['rid'][index])
+    for index in range(len(id2['left_instance_id'])):
+        t = (id2['left_instance_id'][index], id2['right_instance_id'][index])
         if t in couples:
             rightCouples.append(t)
             counter+=1

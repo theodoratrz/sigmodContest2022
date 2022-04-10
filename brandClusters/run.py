@@ -34,8 +34,7 @@ def dumpUnknownInstances(instances: Tuple[int, str, List[str]]):
         writer = csv.writer(outFile)
         
         for id, title, _ in instances:
-            writer.writerow((id, title))
-    
+            writer.writerow((id, title))    
 
 SUBMISSION_MODE = False
 
@@ -94,7 +93,7 @@ brandNames = {
     'toshiba',
     'apple'
 }
-UNKNOWN_FAMILY = 'unknown brand'
+UNKNOWN_BRAND = 'unknown family'
 
 familyNames = {
     'elitebook',
@@ -112,8 +111,7 @@ familyNames = {
     'latitude',
     'atom'
 }
-
-UNKNOWN_BRAND = 'unknown family'
+UNKNOWN_FAMILY = 'unknown brand'
 
 if __name__ == '__main__':
     pairs: List[Tuple[int, int]] = []
@@ -139,8 +137,10 @@ if __name__ == '__main__':
     if DUMP_STATS:
         printBrandStats(brandClusters)
         dumpUnknownInstances(brandClusters[UNKNOWN_BRAND])
-        
-    for brand in brandClusters:
+    
+    # Start from the smallest cluster
+    brandClustersKeys = sorted(brandClusters.keys(), key=lambda k: len(brandClusters[k]))
+    for brand in brandClustersKeys:
         familyClusters: Dict[str, List[ Tuple[int, str] ]] = defaultdict(list)
 
         for instanceId, title, words in brandClusters[brand]:
@@ -160,8 +160,10 @@ if __name__ == '__main__':
         brandThreshold = KNOWN_SEQ_MATCH_THRESHOLD
         if brand == UNKNOWN_BRAND:
             brandThreshold = UNKNOWN_SEQ_MATCH_THRESHOLD
-        # Family subcluster
-        for family in familyClusters:
+
+        # Start from the smallest cluster
+        familyClustersKeys = sorted(familyClusters.keys(), key=lambda k: len(familyClusters[k]))
+        for family in familyClustersKeys:
             for i, (instanceId, sortedTitle) in enumerate(familyClusters[family]):
                 familyClusters[family][i] = (instanceId, sortedTitle)
                 
@@ -174,11 +176,10 @@ if __name__ == '__main__':
                     if seqMatch.ratio() >= brandThreshold:
                         if i_id < j_id:
                             pairs.append( (i_id, j_id) )
-                            if len(pairs) == 1000000:
-                                saveAndExit(pairs)
                         else:
                             pairs.append( (j_id, i_id) )
-                            if len(pairs) == 1000000:
-                                saveAndExit(pairs)
+
+                        if len(pairs) == 1000000:
+                            saveAndExit(pairs)
         
     saveAndExit(pairs)

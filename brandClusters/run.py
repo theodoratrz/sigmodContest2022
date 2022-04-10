@@ -11,9 +11,36 @@ else:
 
 import pandas as pd
 
+DUMP_STATS = True
+
+def printBrandStats(brandClusters: Dict[str, List[ Tuple[int, str, List[str]] ]]):
+    clusterSizes: List[int] = []
+    brandNames: List[str] = []
+    
+    for k in brandClusters:
+        clusterSizes.append(len(brandClusters[k]))
+        brandNames.append(k)
+
+    print(pd.DataFrame({
+            'Brand': brandNames,
+            'Items': clusterSizes
+        }, index=None)
+    )
+
+def dumpUnknownInstances(instances: Tuple[int, str, List[str]]):
+    import csv
+
+    with open('unknown.csv', mode='w') as outFile:
+        writer = csv.writer(outFile)
+        
+        for id, title, _ in instances:
+            writer.writerow((id, title))
+    
+
 SUBMISSION_MODE = False
 
-SEQ_MATCH_THRESHOLD = 0.925
+KNOWN_SEQ_MATCH_THRESHOLD = 0.9
+UNKNOWN_SEQ_MATCH_THRESHOLD = 0.9
 
 def saveAndExit(pairs: List[ Tuple[int, int] ]):
     file = "output.csv"
@@ -63,8 +90,11 @@ brandNames = {
     'samsung',
     'xiaomi',
     'microsoft',
-    'huawei'
+    'huawei',
+    'toshiba',
+    'apple'
 }
+UNKNOWN_FAMILY = 'unknown brand'
 
 familyNames = {
     'elitebook',
@@ -77,10 +107,13 @@ familyNames = {
     'aspire',
     'extensa',
     'surface',
-    'yoga'
+    'yoga',
+    'thinkpad'
+    'latitude',
+    'atom'
 }
 
-UKNOWN_FAMILY = 'unknown'
+UNKNOWN_BRAND = 'unknown family'
 
 if __name__ == '__main__':
     pairs: List[Tuple[int, int]] = []
@@ -92,10 +125,20 @@ if __name__ == '__main__':
     for i, row in X.iterrows():
         sortedWords, cleanedTitle = cleanInstance(row['title'])
 
+        instanceBrands = []
         for word in sortedWords:
             if word in brandNames:
-                brandClusters[word].append((row['id'], cleanedTitle, sortedWords))
-                break
+                instanceBrands.append(word)
+        
+        if len(instanceBrands) > 0:
+            brand = ' '.join(instanceBrands)
+            brandClusters[brand].append((row['id'], cleanedTitle, sortedWords))
+        else:
+            brandClusters[UNKNOWN_BRAND].append((row['id'], cleanedTitle, sortedWords))
+
+    if DUMP_STATS:
+        printBrandStats(brandClusters)
+        dumpUnknownInstances(brandClusters[UNKNOWN_BRAND])
         
     for brand in brandClusters:
         familyClusters: Dict[str, List[ Tuple[int, str] ]] = defaultdict(list)
@@ -109,11 +152,14 @@ if __name__ == '__main__':
                     break
             
             if unkownFamily:
-                familyClusters[UKNOWN_FAMILY].append((instanceId, title))
+                familyClusters[UNKNOWN_FAMILY].append((instanceId, title))
         
         # Maybe save some memory?
         brandClusters[brand] = None
         
+        brandThreshold = KNOWN_SEQ_MATCH_THRESHOLD
+        if brand == UNKNOWN_BRAND:
+            brandThreshold = UNKNOWN_SEQ_MATCH_THRESHOLD
         # Family subcluster
         for family in familyClusters:
             for i, (instanceId, sortedTitle) in enumerate(familyClusters[family]):
@@ -125,7 +171,7 @@ if __name__ == '__main__':
                     j_id, j_title = familyClusters[family][j]
                     seqMatch = SequenceMatcher(None, i_title, j_title)
 
-                    if seqMatch.ratio() >= SEQ_MATCH_THRESHOLD:
+                    if seqMatch.ratio() >= brandThreshold:
                         if i_id < j_id:
                             pairs.append( (i_id, j_id) )
                             if len(pairs) == 1000000:

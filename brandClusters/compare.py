@@ -14,3 +14,4 @@ pass
 print(f"Common: {len(common)}")
 print(f"Missed: {len(missed)}")
 print(f"False Positives: {len(falsePositives)}")
+print(f"Recall: {(len(common)/len(trueRows)):.3}")

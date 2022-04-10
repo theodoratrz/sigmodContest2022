@@ -1,19 +1,25 @@
+from curses.ascii import isdigit
 import pandas as pd
 import re
 
-brands = ['dell', 'lenovo', 'acer', 'asus', 'hp']
+brands = ['dell', 'lenovo', 'acer', 'asus', 'hp', 'panasonic', 'apple', 'toshiba', 'samsung', 'sony']
 
 cpu_brands = ['intel', 'amd']
 
-intel_cores = [' i3', ' i5', ' i7', '2 duo', 'celeron', 'pentium', 'centrino']
-amd_cores = ['e-series', 'a8', 'radeon', 'athlon', 'turion', 'phenom']
+intel_cores = [' i3', ' i5', ' i7', '2 duo', 'celeron', 'pentium', 'centrino', 'xeon']
+amd_cores = ['e-series', 'a8', 'radeon', 'athlon', 'turion', 'phenom', 'opteron']
 
 families = {
-    'hp': [r'elitebook', r'compaq', r'folio', r'pavilion'],
-    'lenovo': [r' x[0-9]{3}[t]?', r'x1 carbon'],
-    'dell': [r'inspiron'],
-    'asus': [r'zenbook', ],
-    'acer': [r'aspire', r'extensa', ],
+    'hp': [r'elitebook', r'compaq', r'folio', r'pavilion', r'zbook', r'envy'],
+    'lenovo': [r'thinkpad x[0-9]{3}[t]?', r' x[0-9]{3}[t]?', r'x1 carbon', r'ideapad', r'flex', r'yoga'],
+    'dell': [r'inspiron', r'latitude', r'precision', r'vostro', r'xps'],
+    'asus': [r'zenbook', r'vivobook', r'rog', r'chromebook'],
+    'acer': [r'aspire', r'extensa' ],
+    'panasonic': [r'toughbook'],
+    'apple': [],
+    'samsung': [],
+    'toshiba': [r'satellite', r'portege'],
+    'sony': [r'vaio'],
     '0': []
 }
 
@@ -92,14 +98,27 @@ def clean_X1(data):
         name_number = '0'
         name_family = '0'
 
+        flag = 0
+        flagFamily = 0
+
         row_info = ""
         for name in information:
             row_info = row_info + " " + name
 
+        count = 0
         for b in brands:
-            if b in information:
-                brand = b
-                break
+            if count == 0:
+                if b in information:
+                    flag = 1
+                    brand = b
+                    count = 1
+            else:
+                if b in information:
+                    flag = 2
+                    brand = brand + ' ' + b
+
+        if brand == '0':
+            flag = 3
 
         for b in cpu_brands:
             if b in information:
@@ -122,10 +141,7 @@ def clean_X1(data):
             r'[1-9][\s]?[Gg][Bb][\s]?((S[Dd][Rr][Aa][Mm])|(D[Dd][Rr]3)|([Rr][Aa][Mm])|(Memory))', row_info)
         if result_ram_capacity is not None:
             ram_capacity = result_ram_capacity.group()
-        for f in families:
-            if f in information:
-                name_family = f
-
+        
         if cpu_brand != 'intel':
             for b in amd_cores:
                 if b in row_info:
@@ -233,71 +249,80 @@ def clean_X1(data):
 
         if brand == 'lenovo':
             result_name_number = re.search(
-                r'[\- ][0-9]{4}[0-9a-zA-Z]{3}(?![0-9a-zA-Z])', name)
+                r'[\- ][0-9]{4}[0-9a-zA-Z]{3}(?![0-9a-zA-Z])', row_info)
             if result_name_number is None:
                 result_name_number = re.search(
-                    r'[\- ][0-9]{4}(?![0-9a-zA-Z])', name)
+                    r'[\- ][0-9]{4}(?![0-9a-zA-Z])', row_info)
             if result_name_number is not None:
                 name_number = result_name_number.group().replace(
                     '-', '').strip().lower()[:4]
         elif brand == 'hp':
-            result_name_number = re.search(r'[0-9]{4}[pPwW]', name)
+            result_name_number = re.search(r'[0-9]{4}[pPwW]', row_info)
             if result_name_number is None:
                 result_name_number = re.search(
-                    r'15[\- ][a-zA-Z][0-9]{3}[a-zA-Z]{2}', name)
+                    r'15[\- ][a-zA-Z][0-9]{3}[a-zA-Z]{2}', row_info)
             if result_name_number is None:
-                result_name_number = re.search(r'[\s]810[\s](G2)?', name)
+                result_name_number = re.search(r'[\s]810[\s](G2)?', row_info)
             if result_name_number is None:
-                result_name_number = re.search(r'[0-9]{4}[mM]', name)
+                result_name_number = re.search(r'[0-9]{4}[mM]', row_info)
             if result_name_number is None:
                 result_name_number = re.search(
-                    r'((DV)|(NC))[0-9]{4}', name)
+                    r'((DV)|(NC))[0-9]{4}', row_info)
             if result_name_number is None:
-                result_name_number = re.search(r'[0-9]{4}DX', name)
+                result_name_number = re.search(r'[0-9]{4}DX', row_info)
             if result_name_number is not None:
                 name_number = result_name_number.group().lower().replace('-', '').replace(' ', '')
         elif brand == 'dell':
             result_name_number = re.search(
-                r'1[57][Rr]?[\s]?([0-9]{4})?[\s]([iI])?[0-9]{4}', name)
+                r'1[57][Rr]?[\s]?([0-9]{4})?[\s]([iI])?[0-9]{4}', row_info)
             if result_name_number is None:
                 result_name_number = re.search(
-                    r'[\s][A-Za-z][0-9]{3}[A-Za-z][\s]', name)
+                    r'[\s][A-Za-z][0-9]{3}[A-Za-z][\s]', row_info)
             if result_name_number is not None:
                 name_number = result_name_number.group().lower().replace(
                     '-', '').replace('i', '').strip().split(' ')[-1]
         elif brand == 'acer':
             result_name_number = re.search(
-                r'[A-Za-z][0-9][\- ][0-9]{3}', name)
+                r'[A-Za-z][0-9][\- ][0-9]{3}', row_info)
             if result_name_number is None:
-                result_name_number = re.search(r'AS[0-9]{4}', name)
+                result_name_number = re.search(r'AS[0-9]{4}', row_info)
             if result_name_number is None:
                 result_name_number = re.search(
-                    r'[0-9]{4}[- ][0-9]{4}', name)
+                    r'[0-9]{4}[- ][0-9]{4}', row_info)
             if result_name_number is not None:
                 name_number = result_name_number.group().lower().replace(' ', '-').replace('-', '')
                 if len(name_number) == 8:
                     name_number = name_number[:4]
         elif brand == 'asus':
             result_name_number = re.search(
-                r'[A-Za-z]{2}[0-9]?[0-9]{2}[A-Za-z]?[A-Za-z]', name)
+                r'[A-Za-z]{2}[0-9]?[0-9]{2}[A-Za-z]?[A-Za-z]', row_info)
             if result_name_number is not None:
                 name_number = result_name_number.group().lower().replace(' ', '-').replace('-', '')
 
-        flag = 0
+        if brand in brands:
+            for pattern in families[brand]:
+                result_name_family = re.search(pattern, row_info)
+                if result_name_family is not None:
+                    name_family = result_name_family.group().strip()
+                    flagFamily = 1
+                    break
+        if name_family == '0':
+            for values in families.values():
+                for value in values:
+                    if value in information:
+                        name_family = value
+                        flagFamily = 2
+                        break
+
         information = ' '.join(re.sub(r'[^\w\s]', ' ', temp).split())
         information = information.split(" ")
         information.sort()
-        
-        if len(information) > 10:
-            flag = 1
-        if len(information) > 20:
-            flag = 2
         
         clean_info = ''
         sorted_title = ''
         for name in information:
             sorted_title = sorted_title + " " + name
-            if name not in trash:
+            if name not in trash and not name.isdigit():
                 clean_info = clean_info + " " + name
 
         splitted_list.append([

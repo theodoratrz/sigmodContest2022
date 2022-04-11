@@ -5,9 +5,12 @@ import string
 USE_C_SEQ_MATHCER = False
 
 if USE_C_SEQ_MATHCER:
-    from cdifflib import CSequenceMatcher
+    import cdifflib
+    SequenceMatcher = cdifflib.CSequenceMatcher
+
 else:
-    from difflib import SequenceMatcher
+    import difflib
+    SequenceMatcher = difflib.SequenceMatcher
 
 import pandas as pd
 
@@ -73,10 +76,11 @@ def saveAndExit(pairs: List[ Tuple[int, int] ]):
 def cleanInstance(raw: str):
     raw_low = raw.lower()
     no_punct = raw_low.translate(str.maketrans({ord(c): ' ' for c in string.punctuation}))
-    words = no_punct.split()
-    words.sort()
+    clean_words = no_punct.split()
+    clean_words.sort()
+    unique_words = set(clean_words)
 
-    return words, ' '.join(words)
+    return unique_words, ' '.join(set(unique_words))
 
 brandNames = {
     'dell',
@@ -164,9 +168,6 @@ if __name__ == '__main__':
         # Start from the smallest cluster
         familyClustersKeys = sorted(familyClusters.keys(), key=lambda k: len(familyClusters[k]))
         for family in familyClustersKeys:
-            for i, (instanceId, sortedTitle) in enumerate(familyClusters[family]):
-                familyClusters[family][i] = (instanceId, sortedTitle)
-                
             for i in range(len(familyClusters[family])):
                 i_id, i_title = familyClusters[family][i]
                 for j in range(i + 1, len(familyClusters[family])):

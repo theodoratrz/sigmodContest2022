@@ -71,10 +71,16 @@ brandModels = {
     ],
     'asus': [
         r'[a-z]{2}[0-9]?[0-9]{2}[a-z]?[a-z]'
-    ]
+    ],
+    'panasonic': [],
+    'apple': [],
+    'toshiba': [],
+    'samsung': [],
+    'sony': [],
+    UNKNOWN_BRAND: []
 }
 
-families = {
+brandFamilies = {
     'hp': [r'elitebook', r'compaq', r'folio', r'pavilion', r'zbook', r'envy'],
     'lenovo': [r'thinkpad x[0-9]{3}[t]?', r' x[0-9]{3}[t]?', r'x1 carbon', r'ideapad', r'flex', r'yoga'],
     'dell': [r'inspiron', r'latitude', r'precision', r'vostro', r'xps'],
@@ -85,61 +91,55 @@ families = {
     'samsung': [],
     'toshiba': [r'satellite', r'portege'],
     'sony': [r'vaio'],
-    '0': []
+    UNKNOWN_BRAND: []
 }
 
-trash = [ r"amazon",
-                r"alibaba",
-                r"com:",
-                r"\d+ ?[Tt][Bb]",
-                r"hdd",
-                r"ssd",
-                r"vology",
-                r"downgrade",
-                r"brand new",
-                r"laptops",
-                r"laptop",
-                r"pc",
-                r"computers",
-                r"china",
-                r"buy",
-                r"famous",
-                r"australia",
-                r"accessories",
-                r"wireless lan",
-                r"wifi",
-                r"wholeshale"
-                r"win(dows)? (xp|7|8.1|8|10)( pro(fessional)?| home premium)? ?((64|32)-bit)?",
-                r"notebook",
-                r"led",
-                r"ips",
-                r"processor",
-                r"core",
-                r"[\(\):&]",
-                r"\"",
-                r"''",
-                r",",
-                r"-",
-                r" +$",
-                r"\|",
-                r"e[Bb]ay",
-                r"webcam",
-                r"best",
-                r"and",
-                r"kids",
-                r"bit",
-                r"win",
-                r"com",
-                r"general",
-                r"linux",
-                r"cheap",
-                r"inch",
-                r"with",
-                r"great",
-                r"product",
-                r"dvdrw",
-                r"quality"
-        ]
+trash = [
+    r"amazon",
+    r"alibaba",
+    r"com:",
+    r"\d+ ?[Tt][Bb]",
+    r"hdd",
+    r"ssd",
+    r"vology",
+    r"downgrade",
+    r"brand new",
+    r"laptops",
+    r"laptop",
+    r"pc",
+    r"computers",
+    r"china",
+    r"buy",
+    r"famous",
+    r"australia",
+    r"accessories",
+    r"wireless lan",
+    r"wifi",
+    r"wholeshale"
+    r"win(dows)? (xp|7|8.1|8|10)( pro(fessional)?| home premium)? ?((64|32)-bit)?",
+    r"notebook",
+    r"led",
+    r"ips",
+    r"processor",
+    r"core",
+    r"e[Bb]ay",
+    r"webcam",
+    r"best",
+    r"and",
+    r"kids",
+    r"bit",
+    r"win",
+    r"com",
+    r"general",
+    r"linux",
+    r"cheap",
+    r"inch",
+    r"with",
+    r"great",
+    r"product",
+    r"dvdrw",
+    r"quality"
+]
 
 def clean_X1(dataset: pd.Dataframe):
     
@@ -155,7 +155,7 @@ def clean_X1(dataset: pd.Dataframe):
         clean_words.sort()
         unique_words = set(clean_words)
     
-        brand = '0'
+        pc_brand = UNKNOWN_BRAND
         cpu_brand = '0'
         cpu_core = '0'
         cpu_model = '0'
@@ -215,4 +215,23 @@ def clean_X1(dataset: pd.Dataframe):
                         if matchedModel is not None:
                             cpu_model = matchedModel.group()
                             break
+
+        matchedModel = None
+        matchedFamily = None
+        for brand in brandsFound:
+            if matchedModel is None:
+                for pattern in brandModels[brand]:
+                    matchedModel = re.search(pattern, cleanedTitle)
+                    if matchedModel is not None:
+                        name_number = matchedModel.group()
+                        break
+            if matchedFamily is None:
+                for family in brandFamilies[brand]:
+                    matchedFamily = re.search(family, cleanedTitle)
+                    if matchedFamily is not None:
+                        name_family = matchedFamily.group()
+                        break
+            if matchedFamily and matchedModel:
+                break
+
     pass

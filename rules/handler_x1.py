@@ -53,7 +53,6 @@ def handle_x1(dataset: pd.DataFrame):
     possible_pairs = []
     possible_large_pairs = []
     possible_small_pairs = []
-    tablet_pairs = []
 
     for index, row in dataset.iterrows():
         instance_id = row['instance_id']
@@ -70,7 +69,21 @@ def handle_x1(dataset: pd.DataFrame):
         clean_info = row['clean_info']
         sorted_title = row['sorted_title']
 
+        if pc_name in pc_aliases.keys():
+            pc_name = pc_aliases[pc_name]
+
+        if (pc_name == '0') and (family in family_single):
+            pc_name = family
+
+        if cpu_model in model_2_pcname.keys():
+            pc_name = model_2_pcname[cpu_model]
+
+        if brand in cpu_model_aliases.keys():
+            if cpu_model in cpu_model_aliases[brand].keys():
+                cpu_model = cpu_model_aliases[brand][cpu_model]
+
         instance_list.add(instance_id)
+
 
         pc = {}
         pc['id'] = instance_id
@@ -87,93 +100,59 @@ def handle_x1(dataset: pd.DataFrame):
         pc['title'] = title
         pc['clean_info'] = clean_info
         pc['sorted_title'] = sorted_title
-        
-        if pc_name in pc_single or pc_name in family_single:
-            pc['identification'] = pc_name
-            if 'tablet' in clean_info:
-                tablet_pairs.append(pc)
-            else:
-                solved_spec.append(pc)
 
-        elif pc_name in pc_capacity and capacity != '0':
-            pc['identification'] = pc_name + ' ' + capacity
-            if 'tablet' in clean_info:
-                tablet_pairs.append(pc)
-            else:
-                solved_spec.append(pc)
+        row_info = [instance_id, brand, cpu_brand, cpu_core,cpu_model, cpu_frequency, pc_name, family]
 
-        elif cpu_model in model_single:
-            pc['identification'] = cpu_model
-            if 'tablet' in clean_info:
-                tablet_pairs.append(pc)
-            else:
-                solved_spec.append(pc)
-
-        elif pc_name in pc_core and cpu_core != '0':
-            pc['identification'] = pc_name + ' ' + cpu_core
-            if 'tablet' in clean_info:
-                tablet_pairs.append(pc)
-            else:
-                solved_spec.append(pc)
-
-        elif family in family_capacity and capacity != '0':
-            pc['identification'] = family + ' ' + capacity
-            if 'tablet' in clean_info:
-                tablet_pairs.append(pc)
-            else:
-                solved_spec.append(pc)
-
-        elif pc_name in pc_core_capacity and cpu_core != '0' and capacity != '0':
-            pc['identification'] = pc_name + ' ' + cpu_core + ' ' + capacity
-            if 'tablet' in clean_info:
-                tablet_pairs.append(pc)
-            else:
-                solved_spec.append(pc)
-
-        elif pc_name != '0' and cpu_model != '0':
-            pc['identification'] = pc_name + ' ' + cpu_model
-            if 'tablet' in clean_info:
-                tablet_pairs.append(pc)
-            else:
-                solved_spec.append(pc)
-
-        elif pc_name != '0' and cpu_core != '0':
-            pc['identification'] = pc_name + ' ' + cpu_core
-            if 'tablet' in clean_info:
-                tablet_pairs.append(pc)
-            else:
-                solved_spec.append(pc)
-
-        elif pc_name != '0' and cpu_frequency != '0':
-            pc['identification'] = pc_name + ' ' + cpu_frequency
-            if 'tablet' in clean_info:
-                tablet_pairs.append(pc)
-            else:
-                solved_spec.append(pc)
-        elif flag == 1:
-            pc['identification'] = clean_info
-            if 'tablet' in clean_info: 
-                    tablet_pairs.append(pc)
-            else:
+        counter = 0
+        for name in row_info:
+            if name == '0':
+                counter+=1
+        if counter > 3:
+            if flag == 0:
+                pc['identification'] = clean_info
+                possible_small_pairs.append(pc)
+            if flag == 1:
+                pc['identification'] = clean_info
                 possible_pairs.append(pc)
-        elif flag == 2:
-            pc['identification'] = clean_info
-            if 'tablet' in clean_info: 
-                    tablet_pairs.append(pc)
-            else:
+            elif flag == 2:
+                pc['identification'] = clean_info
                 possible_large_pairs.append(pc)
         else:
-            if 'tablet' in clean_info:
-                pc['identification'] = brand + ' ' + pc_name + ' ' + cpu_model + ' ' + cpu_core
-                tablet_pairs.append(pc)
+            if pc_name == "8460p" and cpu_model == "2450m":
+                pc['identification'] = pc_name + ' ' + cpu_model
+                solved_spec.append(pc)
+            elif pc_name in pc_single or pc_name in family_single:
+                pc['identification'] = pc_name
+                solved_spec.append(pc)
+            elif pc_name in pc_capacity and capacity != '0':
+                pc['identification'] = pc_name + ' ' + capacity
+                solved_spec.append(pc)
+            elif cpu_model in model_single:
+                pc['identification'] = cpu_model
+                solved_spec.append(pc)
+            elif pc_name in pc_core and cpu_core != '0':
+                pc['identification'] = pc_name + ' ' + cpu_core
+                solved_spec.append(pc)
+            elif family in family_capacity and capacity != '0':
+                pc['identification'] = family + ' ' + capacity
+                solved_spec.append(pc)
+            elif pc_name in pc_core_capacity and cpu_core != '0' and capacity != '0':
+                pc['identification'] = pc_name + ' ' + cpu_core + ' ' + capacity
+                solved_spec.append(pc)
+            elif pc_name != '0' and cpu_model != '0':
+                pc['identification'] = pc_name + ' ' + cpu_model
+                solved_spec.append(pc)
+            elif pc_name != '0' and cpu_core != '0':
+                pc['identification'] = pc_name + ' ' + cpu_core
+                solved_spec.append(pc)
+            elif pc_name != '0' and cpu_frequency != '0':
+                pc['identification'] = pc_name + ' ' + cpu_frequency
+                solved_spec.append(pc)
             else:
                 unsolved_spec.append(pc)
-    
+            instance_list.add(instance_id)
+        
     clusters = dict()
-    smallPairsClusters = dict()
-    mediumPairsClusters = dict()
-    largePairsClusters = dict()
-    tabletPairsClusters = dict()
 
     for s in solved_spec:
         if s['identification'] in clusters.keys():
@@ -201,21 +180,11 @@ def handle_x1(dataset: pd.DataFrame):
         else:
           clusters.update({l['identification']: [l['id']]})
 
-    for pl in possible_small_pairs:
-        if pl['identification'] in clusters.keys():
-            clusters[pl['identification']].append(pl['id'])
+    for l in possible_small_pairs:
+        if l['identification'] in clusters.keys():
+            clusters[l['identification']].append(l['id'])
         else:
-          clusters.update({pl['identification']: [pl['id']]})
-    
-    for tp in tablet_pairs:
-        if tp['identification'] in tabletPairsClusters.keys():
-            tabletPairsClusters[tp['identification']].append(tp['id'])
-        else:
-            tabletPairsClusters.update({tp['identification']: [tp['id']]})
-    
-    singleKeys = dict()
-    singleKeysList = []
-
+          clusters.update({l['identification']: [l['id']]})
     dataset.to_csv("solved.csv", sep=',', encoding='utf-8', index=False)
 
     for c in clusters.keys():
@@ -230,52 +199,5 @@ def handle_x1(dataset: pd.DataFrame):
                         couples.add((j, i))
                         if len(couples) == 1000000:
                             return couples
-    for c in smallPairsClusters.keys():
-        if len(smallPairsClusters[c]) > 1:
-            for i in smallPairsClusters[c]:
-                for j in smallPairsClusters[c]:
-                    if i < j:
-                        couples.add((i, j))
-                        if len(couples) == 1000000:
-                            return couples
-                    if i > j:
-                        couples.add((j, i))
-                        if len(couples) == 1000000:
-                            return couples
-    for c in mediumPairsClusters.keys():
-        if len(mediumPairsClusters[c]) > 1:
-            for i in mediumPairsClusters[c]:
-                for j in mediumPairsClusters[c]:
-                    if i < j:
-                        couples.add((i, j))
-                        if len(couples) == 1000000:
-                            return couples
-                    if i > j:
-                        couples.add((j, i))
-                        if len(couples) == 1000000:
-                            return couples
-    for c in largePairsClusters.keys():
-        if len(largePairsClusters[c]) > 1:
-            for i in largePairsClusters[c]:
-                for j in largePairsClusters[c]:
-                    if i < j:
-                        couples.add((i, j))
-                        if len(couples) == 1000000:
-                            return couples
-                    if i > j:
-                        couples.add((j, i))
-                        if len(couples) == 1000000:
-                            return couples
-    for c in tabletPairsClusters.keys():
-        if len(tabletPairsClusters[c]) > 1:
-            for i in tabletPairsClusters[c]:
-                for j in tabletPairsClusters[c]:
-                    if i < j:
-                        couples.add((i, j))
-                        if len(couples) == 1000000:
-                            return couples
-                    if i > j:
-                        couples.add((j, i))
-                        if len(couples) == 1000000:
-                            return couples
+
     return couples

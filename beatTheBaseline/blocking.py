@@ -80,7 +80,7 @@ def x1_blocking(X: pd.DataFrame) -> List[Tuple[int, int]]:
         cleanedTitle = re.sub(' +', ' ', cleanedTitle).strip()
         clean_words = cleanedTitle.split()
         clean_words.sort()
-        unique_words = set(clean_words)
+        unique_words = {word: None for word in clean_words}.keys()
         sortedTitle = ' '.join(unique_words)
 
         sameSequencePatternToId[sortedTitle].append(i)
@@ -182,4 +182,4 @@ if __name__ == "__main__":
     X2_candidate_pairs = x2_blocking(X2)
 
     # save results
-    save_output(X1_candidate_pairs, X2_candidate_pairs, submission_mode=True)
+    save_output(X1_candidate_pairs, X2_candidate_pairs, submission_mode=False)

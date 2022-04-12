@@ -1,7 +1,60 @@
 from typing import List, Dict, Tuple
+
 from collections import defaultdict
-import pandas as pd
+import string
 import re
+
+import pandas as pd
+
+trash = [
+    r"amazon",
+    r"alibaba",
+    r"com:",
+    r"\d+ ?[Tt][Bb]",
+    r"hdd",
+    r"ssd",
+    r"vology",
+    r"downgrade",
+    r"brand new",
+    r"laptops",
+    r"laptop",
+    r"pc",
+    r"computers",
+    r"china",
+    r"buy",
+    r"famous",
+    r"australia",
+    r"accessories",
+    r"wireless lan",
+    r"wifi",
+    r"wholeshale"
+    r"win(dows)? (xp|7|8.1|8|10)( pro(fessional)?| home premium)? ?((64|32)-bit)?",
+    r"notebook",
+    r"led",
+    r"ips",
+    r"processor",
+    r"core",
+    r"e[Bb]ay",
+    r"webcam",
+    r"best",
+    r"and",
+    r"kids",
+    r"bit",
+    r"win",
+    r"com",
+    r"general",
+    r"linux",
+    r"cheap",
+    r"inch",
+    r"with",
+    r"great",
+    r"product",
+    r"dvdrw",
+    r"quality"
+]
+trashPattern = re.compile('|'.join(trash))
+
+customPunctuation = string.punctuation.replace(".", "")
 
 def x2_blocking(X: pd.DataFrame) -> List[Tuple[int, int]]:
     return []
@@ -16,33 +69,40 @@ def x1_blocking(X: pd.DataFrame) -> List[Tuple[int, int]]:
     attr = 'title'
 
     # build index from patterns to tuples
-    pattern2id_1 = defaultdict(list)
-    pattern2id_2 = defaultdict(list)
-    for i in range(X.shape[0]):
-        attr_i = str(X[attr][i])
-        pattern_1 = attr_i.lower()  # use the whole attribute as the pattern
-        pattern2id_1[pattern_1].append(i)
+    sameSequencePatternToId: Dict[str, List[int]] = defaultdict(list)
+    modelPatternToId: Dict[str, List[int]] = defaultdict(list)
 
-        pattern_2 = re.findall("\w+\s\w+\d+", attr_i)  # look for patterns like "thinkpad x1"
-        if len(pattern_2) == 0:
-            continue
-        pattern_2 = list(sorted(pattern_2))
-        pattern_2 = [str(it).lower() for it in pattern_2]
-        pattern2id_2[" ".join(pattern_2)].append(i)
+    for i, row in X.iterrows():
+        id = row['id']
+        rawTitle = str(row['title']).lower()
+        noTrash = re.sub(trashPattern, '', rawTitle)
+        cleanedTitle = noTrash.translate(str.maketrans({ord(c): ' ' for c in customPunctuation}))
+        cleanedTitle = re.sub(' +', ' ', cleanedTitle).strip()
+        clean_words = cleanedTitle.split()
+        clean_words.sort()
+        unique_words = set(clean_words)
+        sortedTitle = ' '.join(unique_words)
 
+        sameSequencePatternToId[sortedTitle].append(i)
+
+        possibleModels = re.findall("\w+\s\w+\d+", cleanedTitle)  # look for patterns like "thinkpad x1"
+        if len(possibleModels) > 0:
+            possibleModels = list(sorted(possibleModels))
+            possibleModels = [str(m).lower() for m in possibleModels]
+            modelPatternToId[" ".join(possibleModels)].append(i)
 
     # add id pairs that share the same pattern to candidate set
     candidate_pairs_1 = []
-    for pattern in pattern2id_1:
-        ids = list(sorted(pattern2id_1[pattern]))
+    for pattern in sameSequencePatternToId:
+        ids = list(sorted(sameSequencePatternToId[pattern]))
         for i in range(len(ids)):
             for j in range(i + 1, len(ids)):
                 candidate_pairs_1.append((ids[i], ids[j])) #
     # add id pairs that share the same pattern to candidate set
     candidate_pairs_2 = []
-    for pattern in pattern2id_2:
-        ids = list(sorted(pattern2id_2[pattern]))
-        if len(ids)<100: #skip patterns that are too common
+    for pattern in modelPatternToId:
+        ids = list(sorted(modelPatternToId[pattern]))
+        if len(ids)<1000: #skip patterns that are too common
             for i in range(len(ids)):
                 for j in range(i + 1, len(ids)):
                     candidate_pairs_2.append((ids[i], ids[j]))
@@ -122,4 +182,4 @@ if __name__ == "__main__":
     X2_candidate_pairs = x2_blocking(X2)
 
     # save results
-    save_output(X1_candidate_pairs, X2_candidate_pairs, submission_mode=False)
+    save_output(X1_candidate_pairs, X2_candidate_pairs, submission_mode=True)

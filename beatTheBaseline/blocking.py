@@ -59,14 +59,12 @@ customPunctuation = string.punctuation.replace(".", "")
 def x2_blocking(X: pd.DataFrame) -> List[Tuple[int, int]]:
     return []
 
-def x1_blocking(X: pd.DataFrame) -> List[Tuple[int, int]]:
+def x1_blocking(X: pd.DataFrame, attr) -> List[Tuple[int, int]]:
     """
     This function performs blocking on X1 dataset.
     :param `X`: dataframe
     :return: candidate set of tuple pairs
     """
-
-    attr = 'title'
 
     # build index from patterns to tuples
     sameSequencePatternToId: Dict[str, List[int]] = defaultdict(list)
@@ -74,7 +72,7 @@ def x1_blocking(X: pd.DataFrame) -> List[Tuple[int, int]]:
 
     for i, row in X.iterrows():
         id = row['id']
-        rawTitle = str(row['title']).lower()
+        rawTitle = str(row[attr]).lower()
         noTrash = re.sub(trashPattern, '', rawTitle)
         cleanedTitle = noTrash.translate(str.maketrans({ord(c): ' ' for c in customPunctuation}))
         cleanedTitle = re.sub(' +', ' ', cleanedTitle).strip()
@@ -178,8 +176,8 @@ if __name__ == "__main__":
     X2 = pd.read_csv("X2.csv")
 
     # perform blocking
-    X1_candidate_pairs = x1_blocking(X1)
-    X2_candidate_pairs = x2_blocking(X2)
+    X1_candidate_pairs = x1_blocking(X1, 'title')
+    X2_candidate_pairs = x1_blocking(X2, 'name')
 
     # save results
     save_output(X1_candidate_pairs, X2_candidate_pairs, submission_mode=False)

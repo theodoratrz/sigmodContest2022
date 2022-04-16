@@ -6,6 +6,8 @@ import re
 
 import pandas as pd
 
+SUBMISSION_MODE = False
+
 trash = [
     r"amazon",
     r"alibaba",
@@ -56,10 +58,61 @@ trashPattern = re.compile('|'.join(trash))
 
 customPunctuation = string.punctuation.replace(".", "")
 
+brands = [
+    r'dell',
+    r'lenovo',
+    r'acer',
+    r'asus',
+    r'h(ewlett )?p(ackard)?',
+    r'pan(a)?sonic',
+    r'apple',
+    r'toshiba',
+    r'samsung',
+    r'sony'
+]
+
+# Used by `getSimilarityScore()`
+numberPattern = r'[0-9]+(\.[0-9]+)?'
+NUMBER_WEIGHT = 0.15
+wordPattern = r'(?=\D)[\w]+'
+WORD_WEIGHT = 0.2
+brandPattern = re.compile('|'.join(brands))
+BRAND_WEIGHT = 0.5
+#alphanumericPattern = r''
+ALPHANUMERIC_WEIGHT = 1
+
+def getSimilarityScore(a: str, b: str):
+
+    if len(a) == 0 or len(b) == 0:
+        return 0.0
+
+    a_words = set(a.split())
+    b_words = set(b.split())
+    common = a_words.intersection(b_words)
+
+    weighted_sum = 0
+    for word in common:
+        match = re.fullmatch(wordPattern, word)
+        if match:
+            # Character-only word
+            if brandPattern.fullmatch(match.group()):
+                # Brand
+                weighted_sum += BRAND_WEIGHT
+            else:
+                weighted_sum += WORD_WEIGHT
+        elif re.fullmatch(numberPattern, word):
+            # Number
+            weighted_sum += NUMBER_WEIGHT
+        else:
+            # Alphanumeric string
+            weighted_sum += ALPHANUMERIC_WEIGHT
+
+    return weighted_sum/max(len(a_words), len(b_words))
+
 def x2_blocking(X: pd.DataFrame) -> List[Tuple[int, int]]:
     return []
 
-def x1_blocking(X: pd.DataFrame, attr) -> List[Tuple[int, int]]:
+def x1_blocking(X: pd.DataFrame, attr: str, save_scores=False) -> List[Tuple[int, int]]:
     """
     This function performs blocking on X1 dataset.
     :param `X`: dataframe
@@ -128,12 +181,17 @@ def x1_blocking(X: pd.DataFrame, attr) -> List[Tuple[int, int]]:
             candidate_pairs_real_ids.append((real_id2, real_id1))
 
         # compute jaccard similarity
-        name1 = str(X[attr][id1])
-        name2 = str(X[attr][id2])
-        s1 = set(name1.lower().split())
-        s2 = set(name2.lower().split())
-        jaccard_similarities.append(len(s1.intersection(s2)) / max(len(s1), len(s2)))
-    candidate_pairs_real_ids = [x for _, x in sorted(zip(jaccard_similarities, candidate_pairs_real_ids), reverse=True)]
+        name1 = str(X[attr][id1]).lower()
+        name2 = str(X[attr][id2]).lower()
+        #s1 = set(name1.split())
+        #s2 = set(name2.split())
+        #jaccard_similarities.append(len(s1.intersection(s2)) / max(len(s1), len(s2)))
+        jaccard_similarities.append(getSimilarityScore(name1, name2))
+
+    if save_scores:
+        candidate_pairs_real_ids = [(pair[0], pair[1], score) for pair, score in sorted(zip(candidate_pairs_real_ids, jaccard_similarities), key=lambda t: t[1], reverse=True)]
+    else:
+        candidate_pairs_real_ids = [x for _, x in sorted(zip(jaccard_similarities, candidate_pairs_real_ids), reverse=True)]
     return candidate_pairs_real_ids
 
 
@@ -164,7 +222,7 @@ def save_output(X1_candidate_pairs: List[Tuple[int, int]],
     else:
         all_cand_pairs = X1_candidate_pairs + X2_candidate_pairs
 
-    output_df = pd.DataFrame(all_cand_pairs, columns=["left_instance_id", "right_instance_id"])
+    output_df = pd.DataFrame(all_cand_pairs, columns=["left_instance_id", "right_instance_id", "score"])
     # In evaluation, we expect output.csv to include exactly 3000000 tuple pairs.
     # we expect the first 1000000 pairs are for dataset X1, and the remaining pairs are for dataset X2
     output_df.to_csv("output.csv", index=False)
@@ -176,8 +234,9 @@ if __name__ == "__main__":
     X2 = pd.read_csv("X2.csv")
 
     # perform blocking
-    X1_candidate_pairs = x1_blocking(X1, 'title')
-    X2_candidate_pairs = x1_blocking(X2, 'name')
+    X1_candidate_pairs = x1_blocking(X1, 'title', save_scores=(not SUBMISSION_MODE))
+    #X2_candidate_pairs = x1_blocking(X2, 'name')
+    X2_candidate_pairs = []
 
     # save results
-    save_output(X1_candidate_pairs, X2_candidate_pairs, submission_mode=False)
+    save_output(X1_candidate_pairs, X2_candidate_pairs, submission_mode=SUBMISSION_MODE)

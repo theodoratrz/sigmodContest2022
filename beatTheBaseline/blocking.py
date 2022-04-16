@@ -34,6 +34,7 @@ def x1_blocking(csv_reader, id_col: str, title_col: str, save_scores=False) -> L
         unique_words = {word: None for word in clean_words}.keys()
         sortedTitle = ' '.join(unique_words)
 
+        #instance = (id, cleanedTitle)
         instance = (id, rawTitle)
 
         sameSequencePatterns[sortedTitle].append(instance)

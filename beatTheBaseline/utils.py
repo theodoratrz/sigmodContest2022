@@ -86,7 +86,10 @@ modelPattern = re.compile('|'.join(models))
 
 cpus = [
     # intel
-    r'(intel )?(core )?i3', r'(intel )?(core )?i5', r'(intel )?(core )?i7', r'(intel )?(core )?2 duo',
+    r'(intel )?(core )?i3( [0-9]{3,4}[q]?[mu])?',
+    r'(intel )?(core )?i5( [0-9]{3,4}[q]?[mu])?',
+    r'(intel )?(core )?i7( [0-9]{3,4}[q]?[mu])?',
+    r'(intel )?(core )?2 duo',
     r'(intel )?celeron', r'(intel )?pentium', r'(intel )?centrino', r'(intel )?xeon',
     r'[0-9]{3,4}[q]?[mu]', r'[pnt][0-9]{4}', r'[0-9]{4}[y]', r'[s]?[l][0-9]{4}', r'((1st)|(2nd)|(3rd)|([4-9]th))[ ][g]en',
 
@@ -106,11 +109,11 @@ ALPHANUMERIC_WEIGHT = 1
 
 def getSimilarityScore(a: str, b: str) -> float:
 
-    if len(a) == 0 or len(b) == 0:
-        return 0.0
-
     a_words = set(a.split())
     b_words = set(b.split())
+    if len(a_words) == 0 or len(b_words) == 0:
+        return 0.0
+    
     common = a_words.intersection(b_words)
 
     weighted_sum = 0

@@ -1,5 +1,5 @@
 import pandas as pd
-from clean_x1 import clean_x1
+from clean_x1 import clean_X1
 
 pc_aliases = {
     "810g2": "810", "3626": "3113", "3249": "3113", "r7572": "i5420", "1229dx": "1016dx", "6787": "3435"}
@@ -13,6 +13,10 @@ cpu_model_aliases = {
     "asus": {},
     "dell": {}
 }
+
+model_family_2_pcname = {
+    "4010u aspire": "e1572"
+} 
 
 model_2_pcname = {
     "1-6010": "15g070nr"
@@ -43,20 +47,27 @@ instance_list = set()
 
 def handle_x1(dataset: pd.DataFrame):
 
-    dataset = clean_x1(dataset)
+    dataset = clean_X1(dataset)
+    couples = set()
+
+    possible_pairs = []
+    possible_large_pairs = []
+    possible_small_pairs = []
 
     for index, row in dataset.iterrows():
         instance_id = row['instance_id']
         brand = row['brand']
+        cpu_brand = row['cpu_brand']
         cpu_core = row['cpu_core']
         cpu_model = row['cpu_model']
         cpu_frequency = row['cpu_frequency']
+        capacity = row['capacity']
+        flag = row['flag']
         pc_name = row['pc_name']
-        capacity = row['ram_capacity']
         family = row['family']
-        rest_info = row['rest_info']
         title = row['title']
-        pc = {}
+        clean_info = row['clean_info']
+        sorted_title = row['sorted_title']
 
         if pc_name in pc_aliases.keys():
             pc_name = pc_aliases[pc_name]
@@ -73,51 +84,74 @@ def handle_x1(dataset: pd.DataFrame):
 
         instance_list.add(instance_id)
 
+
+        pc = {}
         pc['id'] = instance_id
         pc['title'] = title
         pc['brand'] = brand
+        pc['cpu_brand'] = cpu_brand
         pc['pc_name'] = pc_name
         pc['cpu_model'] = cpu_model
-        pc['capacity'] = capacity
         pc['cpu_core'] = cpu_core
-        pc['rest'] = rest_info
+        pc['cpu_frequency'] = cpu_frequency
+        pc['capacity'] = capacity
+        pc['family'] = family
+        pc['flag'] = flag
+        pc['title'] = title
+        pc['clean_info'] = clean_info
+        pc['sorted_title'] = sorted_title
 
-        if pc_name == "8460p" and cpu_model == "2450m":
-            pc['identification'] = pc_name + ' ' + cpu_model
-            solved_spec.append(pc)
-        elif pc_name in pc_single or pc_name in family_single:
-            pc['identification'] = pc_name
-            solved_spec.append(pc)
-        elif pc_name in pc_capacity and capacity != '0':
-            pc['identification'] = pc_name + ' ' + capacity
-            solved_spec.append(pc)
-        elif cpu_model in model_single:
-            pc['identification'] = cpu_model
-            solved_spec.append(pc)
-        elif pc_name in pc_core and cpu_core != '0':
-            pc['identification'] = pc_name + ' ' + cpu_core
-            solved_spec.append(pc)
-        elif family in family_capacity and capacity != '0':
-            pc['identification'] = family + ' ' + capacity
-            solved_spec.append(pc)
-        elif pc_name in pc_core_capacity and cpu_core != '0' and capacity != '0':
-            pc['identification'] = pc_name + ' ' + cpu_core + ' ' + capacity
-            solved_spec.append(pc)
-        elif pc_name != '0' and cpu_model != '0':
-            pc['identification'] = pc_name + ' ' + cpu_model
-            solved_spec.append(pc)
-        elif pc_name != '0' and cpu_core != '0':
-            pc['identification'] = pc_name + ' ' + cpu_core
-            solved_spec.append(pc)
-        elif pc_name != '0' and cpu_frequency != '0':
-            pc['identification'] = pc_name + ' ' + cpu_frequency
-            solved_spec.append(pc)
-        elif rest_info != '0':
-            pc['identification'] = rest_info
-            solved_spec.append(pc)
+        row_info = [instance_id, brand, cpu_brand, cpu_core,cpu_model, cpu_frequency, pc_name, family]
+
+        counter = 0
+        for name in row_info:
+            if name == '0':
+                counter+=1
+        if counter > 3:
+            if flag == 0:
+                pc['identification'] = clean_info
+                possible_small_pairs.append(pc)
+            if flag == 1:
+                pc['identification'] = clean_info
+                possible_pairs.append(pc)
+            elif flag == 2:
+                pc['identification'] = clean_info
+                possible_large_pairs.append(pc)
         else:
-            unsolved_spec.append(pc)
-
+            if pc_name == "8460p" and cpu_model == "2450m":
+                pc['identification'] = pc_name + ' ' + cpu_model
+                solved_spec.append(pc)
+            elif pc_name in pc_single or pc_name in family_single:
+                pc['identification'] = pc_name
+                solved_spec.append(pc)
+            elif pc_name in pc_capacity and capacity != '0':
+                pc['identification'] = pc_name + ' ' + capacity
+                solved_spec.append(pc)
+            elif cpu_model in model_single:
+                pc['identification'] = cpu_model
+                solved_spec.append(pc)
+            elif pc_name in pc_core and cpu_core != '0':
+                pc['identification'] = pc_name + ' ' + cpu_core
+                solved_spec.append(pc)
+            elif family in family_capacity and capacity != '0':
+                pc['identification'] = family + ' ' + capacity
+                solved_spec.append(pc)
+            elif pc_name in pc_core_capacity and cpu_core != '0' and capacity != '0':
+                pc['identification'] = pc_name + ' ' + cpu_core + ' ' + capacity
+                solved_spec.append(pc)
+            elif pc_name != '0' and cpu_model != '0':
+                pc['identification'] = pc_name + ' ' + cpu_model
+                solved_spec.append(pc)
+            elif pc_name != '0' and cpu_core != '0':
+                pc['identification'] = pc_name + ' ' + cpu_core
+                solved_spec.append(pc)
+            elif pc_name != '0' and cpu_frequency != '0':
+                pc['identification'] = pc_name + ' ' + cpu_frequency
+                solved_spec.append(pc)
+            else:
+                unsolved_spec.append(pc)
+            instance_list.add(instance_id)
+        
     clusters = dict()
 
     for s in solved_spec:
@@ -127,30 +161,43 @@ def handle_x1(dataset: pd.DataFrame):
             clusters.update({s['identification']: [s['id']]})
 
     for u in unsolved_spec:
-        identification = u['brand'] + ' ' + u['pc_name'] + ' ' + u['cpu_model'] + ' ' + u['capacity'] + ' ' + \
+        identification = u['brand'] + ' ' + u['pc_name'] + ' ' + u['cpu_model'] + ' ' + \
                          u['cpu_core']
         if identification in clusters.keys():
             clusters[identification].append(u['id'])
         else:
             clusters.update({identification: [u['id']]})
+    
+    for p in possible_pairs:
+        if p['identification'] in clusters.keys():
+            clusters[p['identification']].append(p['id'])
+        else:
+            clusters.update({p['identification']: [p['id']]})
+    
+    for l in possible_large_pairs:
+        if l['identification'] in clusters.keys():
+            clusters[l['identification']].append(l['id'])
+        else:
+          clusters.update({l['identification']: [l['id']]})
 
-    couples = set()
+    for l in possible_small_pairs:
+        if l['identification'] in clusters.keys():
+            clusters[l['identification']].append(l['id'])
+        else:
+          clusters.update({l['identification']: [l['id']]})
+    dataset.to_csv("solved.csv", sep=',', encoding='utf-8', index=False)
+
     for c in clusters.keys():
         if len(clusters[c]) > 1:
             for i in clusters[c]:
                 for j in clusters[c]:
                     if i < j:
-                        couples.add((i, j, 1))
+                        couples.add((i, j))
+                        if len(couples) == 1000000:
+                            return couples
                     if i > j:
-                        couples.add((j, i, 1))
+                        couples.add((j, i))
+                        if len(couples) == 1000000:
+                            return couples
 
-    output = couples
-    output = pd.DataFrame(
-        output,
-        columns=[
-            'lid',
-            'rid',
-            'label'])
-    output.drop(columns=['label'], inplace=True)
-
-    return output
+    return couples

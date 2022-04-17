@@ -1,0 +1,40 @@
+                   Brand  Items
+0         unknown family    398
+1              panasonic     84
+2      panasonic toshiba      4
+3            dell lenovo     21
+4                 lenovo    466
+5                   acer     89
+6           hp panasonic      4
+7                   dell    153
+8              hp lenovo     13
+9                     hp    232
+10                  sony     16
+11                  asus     49
+12               toshiba     30
+13               samsung     11
+14        acer panasonic      4
+15             microsoft      8
+16               dell hp     19
+17          dell toshiba      4
+18        dell panasonic      4
+19        lenovo samsung      2
+20           lenovo sony      6
+21             acer dell      4
+22        lenovo toshiba      2
+23      lenovo panasonic      4
+24               acer hp      2
+25          apple lenovo      2
+26              apple hp      2
+27           asus lenovo      2
+28            apple dell      2
+29      asus dell lenovo      2
+30             asus dell      4
+31          asus toshiba      1
+32               asus hp      2
+33             asus sony      2
+34            hp toshiba      5
+35                 apple      2
+36          dell samsung      3
+37            hp samsung      1
+38  dell samsung toshiba      2

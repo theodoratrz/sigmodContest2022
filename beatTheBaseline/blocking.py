@@ -8,12 +8,24 @@ import pandas as pd
 from utils import *
 
 
-def x2_blocking(csv_reader, id_col: str, title_col: str, save_scores=False) -> List[Tuple[int, int]]:
+NO_BRAND = 'no_brand'
+NO_MODEL = 'no_model'
+NO_CPU = 'no_cpu'
+NO_CAPACITY = 'no_capacity'
+
+def x2_blocking(csv_reader, id_col: str, title_col: str, brand_col: str, save_scores=False) -> List[Tuple[int, int]]:
     """
     This function performs blocking on X1 dataset.
     :param `X`: dataframe
     :return: candidate set of tuple pairs
     """
+    customPunctuation = NamespaceX2.punctuation
+    trashPattern = NamespaceX2.trashPattern
+    brandPatterns = NamespaceX2.brandPatterns
+    modelPattern = NamespaceX2.modelPattern
+    separatedCapacityPattern = NamespaceX2.separatedCapacityPattern
+    unifiedCapacityPattern = NamespaceX2.unifiedCapacityPattern
+    capacityPattern = NamespaceX2.capacityPattern
 
     sameSequencePatterns: Dict[str, List[ Tuple[int, str] ]] = defaultdict(list)
     modelPatterns: Dict[str, List[ Tuple[int, str] ]] = defaultdict(list)
@@ -21,6 +33,8 @@ def x2_blocking(csv_reader, id_col: str, title_col: str, save_scores=False) -> L
     for i, row in enumerate(csv_reader):
         id = int(row[id_col])
         rawTitle = str(row[title_col]).lower()
+
+        rawTitle = re.sub(separatedCapacityPattern, unifiedCapacityPattern, rawTitle)
 
         noTrash = re.sub(trashPattern, '', rawTitle)
         cleanedTitle = noTrash.translate(str.maketrans({ord(c): ' ' for c in customPunctuation}))
@@ -32,45 +46,39 @@ def x2_blocking(csv_reader, id_col: str, title_col: str, save_scores=False) -> L
         sortedTitle = ' '.join(unique_words)
 
         #instance = (id, cleanedTitle)
-        instance = (id, rawTitle)
+        instance = (id, cleanedTitle)
 
         sameSequencePatterns[sortedTitle].append(instance)
 
-        #brand = brandPattern.search(sortedTitle)
-        #if not brand:
-        #    brand = 'no_brand'
-        #else:
-        #    brand = brand.group()
         brands = []
         for brand in brandPatterns:
             match = re.search(brand, sortedTitle)
             if match:
                 brands.append(match.group())
-        brand = ' & '.join(brands) if len(brands) else 'no_brand'
+        if len(brands):
+            brand = ' & '.join(brands)
+        else:
+            match = re.search(row[brand_col], sortedTitle)
+            if match:
+                brand = match.group()
+            else:
+                brand = NO_BRAND
         
         model = modelPattern.search(cleanedTitle)
         if not model:
-            model = 'no_model'
+            model = NO_MODEL
         else:
             model = model.group()
 
-        cpu = cpuModelPattern.search(cleanedTitle)
-        if not cpu:
-            #cpu = cpuBrandPattern.search(cleanedTitle)
-            #cpu = cpu.group() if cpu else 'no_cpu'
-            cpu = 'no_cpu'
+        capacity = re.search(capacityPattern, cleanedTitle)
+        if not capacity:
+            capacity = NO_CAPACITY
         else:
-            cpu = cpu.group()
+            capacity = capacity.group()
 
-        if model != 'no_model' and cpu != 'no_cpu':
-            pattern = " || ".join((brand, model, cpu))
+        if brand != NO_BRAND and model != NO_MODEL and capacity != NO_CAPACITY:
+            pattern = " || ".join((brand, model, capacity))
             modelPatterns[pattern].append(instance)
-
-        #possibleModels = re.findall("\w+\s\w+\d+", cleanedTitle)  # look for patterns like "thinkpad x1"
-        #if len(possibleModels) > 0:
-        #    possibleModels = list(sorted(possibleModels))
-        #    possibleModels = [str(m).lower() for m in possibleModels]
-        #    modelPatternToId[" ".join(possibleModels)].append(i)
 
     # add id pairs that share the same pattern to candidate set
     candidate_pairs_1 = []
@@ -94,9 +102,9 @@ def x2_blocking(csv_reader, id_col: str, title_col: str, save_scores=False) -> L
     candidate_pairs = list(candidate_pairs_2.union(candidate_pairs_1))
 
     # sort candidate pairs by jaccard similarity.
-    # In case we have more than 1000000 pairs (or 2000000 pairs for the second dataset),
+    # In case we have more than 2000000 pairs,
     # sort the candidate pairs to put more similar pairs first,
-    # so that when we keep only the first 1000000 pairs we are keeping the most likely pairs
+    # so that when we keep only the first 2000000 pairs we are keeping the most likely pairs
     jaccard_similarities = []
     candidate_pairs_real_ids: List[Tuple[int, int]] = []
     for pair in candidate_pairs:
@@ -108,7 +116,7 @@ def x2_blocking(csv_reader, id_col: str, title_col: str, save_scores=False) -> L
             candidate_pairs_real_ids.append((id2, id1))
 
         # compute jaccard similarity
-        jaccard_similarities.append(getSimilarityScore(name1, name2))
+        jaccard_similarities.append(NamespaceX2.getSimilarityScore(name1, name2))
 
     if save_scores:
         candidate_pairs_real_ids = [(pair[0], pair[1], score) for pair, score in sorted(zip(candidate_pairs_real_ids, jaccard_similarities), key=lambda t: t[1], reverse=True)]
@@ -123,6 +131,12 @@ def x1_blocking(csv_reader, id_col: str, title_col: str, save_scores=False) -> L
     :return: candidate set of tuple pairs
     """
 
+    customPunctuation = NamespaceX1.punctuation
+    trashPattern = NamespaceX1.trashPattern
+    brandPatterns = NamespaceX1.brandPatterns
+    modelPattern = NamespaceX1.modelPattern
+    cpuModelPattern = NamespaceX1.cpuModelPattern
+
     sameSequencePatterns: Dict[str, List[ Tuple[int, str] ]] = defaultdict(list)
     modelPatterns: Dict[str, List[ Tuple[int, str] ]] = defaultdict(list)
 
@@ -144,41 +158,28 @@ def x1_blocking(csv_reader, id_col: str, title_col: str, save_scores=False) -> L
 
         sameSequencePatterns[sortedTitle].append(instance)
 
-        #brand = brandPattern.search(sortedTitle)
-        #if not brand:
-        #    brand = 'no_brand'
-        #else:
-        #    brand = brand.group()
         brands = []
         for brand in brandPatterns:
             match = re.search(brand, sortedTitle)
             if match:
                 brands.append(match.group())
-        brand = ' & '.join(brands) if len(brands) else 'no_brand'
+        brand = ' & '.join(brands) if len(brands) else NO_BRAND
         
         model = modelPattern.search(cleanedTitle)
         if not model:
-            model = 'no_model'
+            model = NO_MODEL
         else:
             model = model.group()
 
         cpu = cpuModelPattern.search(cleanedTitle)
         if not cpu:
-            #cpu = cpuBrandPattern.search(cleanedTitle)
-            #cpu = cpu.group() if cpu else 'no_cpu'
-            cpu = 'no_cpu'
+            cpu = NO_CPU
         else:
             cpu = cpu.group()
 
-        if model != 'no_model' and cpu != 'no_cpu':
+        if model != NO_MODEL and cpu != NO_CPU:
             pattern = " || ".join((brand, model, cpu))
             modelPatterns[pattern].append(instance)
-
-        #possibleModels = re.findall("\w+\s\w+\d+", cleanedTitle)  # look for patterns like "thinkpad x1"
-        #if len(possibleModels) > 0:
-        #    possibleModels = list(sorted(possibleModels))
-        #    possibleModels = [str(m).lower() for m in possibleModels]
-        #    modelPatternToId[" ".join(possibleModels)].append(i)
 
     # add id pairs that share the same pattern to candidate set
     candidate_pairs_1 = []
@@ -202,7 +203,7 @@ def x1_blocking(csv_reader, id_col: str, title_col: str, save_scores=False) -> L
     candidate_pairs = list(candidate_pairs_2.union(candidate_pairs_1))
 
     # sort candidate pairs by jaccard similarity.
-    # In case we have more than 1000000 pairs (or 2000000 pairs for the second dataset),
+    # In case we have more than 1000000 pairs,
     # sort the candidate pairs to put more similar pairs first,
     # so that when we keep only the first 1000000 pairs we are keeping the most likely pairs
     jaccard_similarities = []
@@ -216,7 +217,7 @@ def x1_blocking(csv_reader, id_col: str, title_col: str, save_scores=False) -> L
             candidate_pairs_real_ids.append((id2, id1))
 
         # compute jaccard similarity
-        jaccard_similarities.append(getSimilarityScore(name1, name2))
+        jaccard_similarities.append(NamespaceX1.getSimilarityScore(name1, name2))
 
     if save_scores:
         candidate_pairs_real_ids = [(pair[0], pair[1], score) for pair, score in sorted(zip(candidate_pairs_real_ids, jaccard_similarities), key=lambda t: t[1], reverse=True)]
@@ -263,9 +264,11 @@ if __name__ == "__main__":
 
     with open('X1.csv') as x1_file:
         x1_reader = csv.DictReader(x1_file)
-        X1_candidate_pairs = x1_blocking(x1_reader, id_col='id', title_col='title', save_scores=(not SUBMISSION_MODE))
+        #X1_candidate_pairs = x1_blocking(x1_reader, id_col='id', title_col='title', save_scores=(not SUBMISSION_MODE))
+        X1_candidate_pairs = []
     with open('X2.csv') as x2_file:
         x2_reader = csv.DictReader(x2_file)
-        X2_candidate_pairs = x2_blocking(x2_reader)
+        X2_candidate_pairs = x2_blocking(x2_reader, id_col='id', title_col='name', brand_col='brand', save_scores=(not SUBMISSION_MODE))
+        #X2_candidate_pairs = []
 
     save_output(X1_candidate_pairs, X2_candidate_pairs, submission_mode=SUBMISSION_MODE)

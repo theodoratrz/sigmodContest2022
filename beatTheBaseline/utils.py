@@ -145,8 +145,8 @@ class NamespaceX2:
     punctuation = re.sub(r'[.-]', '', string.punctuation)
 
     trash = [
-        r"[a-z]+(.com|.ca|.es|.de|.fr)",
-        r"com:"
+        r"[a-z]+(\.com|\.ca|\.es|\.de|\.fr)",
+        r"com:",
         r"amazon",
         r"clé",
         r"tesco",
@@ -162,14 +162,10 @@ class NamespaceX2:
         r"(online in )?egypt",
         r"online",
         r"accessories",
-        r"wholeshale"
-        r"e[b]ay",
+        r"wholeshale",
+        r"ebay",
         r"best",
-        r"and",
         r"kids",
-        r"bit",
-        r"win",
-        r"com",
         r"general",
         r"cheap",
         r"with",
@@ -180,11 +176,11 @@ class NamespaceX2:
         r"drive",
         r"memory",
         r"tarjeta",
-        r"adaptateur"
+        r"adaptateur",
         r"m[eé]mo(ria|ire)",
-        r"class[e]? "
+        r"class[e]? ",
         r"carte",
-        r"card",
+        r"card "
     ]
     trashPattern = re.compile('|'.join(trash))
 
@@ -223,7 +219,9 @@ class NamespaceX2:
     
     separatedCapacityPattern = r'(?P<size>[0-9]{1,3}) (?P<unit>[gt]b)'
     unifiedCapacityPattern = r'\g<size>\g<unit>'
-    capacityPattern = r'[0-9]{1,3}[gt]b'
+    capacityPattern = r'[0-9]{1,3}[gt][bo]'
+    capacityUnitPattern = r'(^| )g[bo]($| )'
+    capacitySizesPattern = r'(^| )(4|8|16|32|64|128|256|512)($| )'
 
     numberPattern = r'[0-9]+(\.[0-9]+)?'
     NUMBER_WEIGHT = 0.1
@@ -234,7 +232,7 @@ class NamespaceX2:
     ALPHANUMERIC_WEIGHT = 1
 
     @staticmethod
-    def getSimilarityScore(a: str, b: str) -> float:
+    def getSimilarityScore(a: str, b: str, requireCapacity = False) -> float:
         a_words = set(a.split())
         b_words = set(b.split())
         if len(a_words) == 0 or len(b_words) == 0:
@@ -242,6 +240,7 @@ class NamespaceX2:
         
         common = a_words.intersection(b_words)
 
+        sameCapacity = False
         weighted_sum = 0
         for word in common:
             match = re.fullmatch(NamespaceX2.wordPattern, word)
@@ -259,7 +258,11 @@ class NamespaceX2:
                 # Alphanumeric string
                 if re.fullmatch(NamespaceX2.capacityPattern, word):
                     weighted_sum += NamespaceX2.CAPACITY_WEIGHT
+                    sameCapacity = True
                 else:
                     weighted_sum += NamespaceX2.ALPHANUMERIC_WEIGHT
 
+        if requireCapacity and (not sameCapacity):
+            return -1.0
+        
         return weighted_sum/max(len(a_words), len(b_words))

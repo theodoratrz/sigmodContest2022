@@ -21,11 +21,14 @@ def x2_blocking(csv_reader, id_col: str, title_col: str, brand_col: str, save_sc
     """
     customPunctuation = NamespaceX2.punctuation
     trashPattern = NamespaceX2.trashPattern
+    brandPattern = NamespaceX2.brandPattern
     brandPatterns = NamespaceX2.brandPatterns
     modelPattern = NamespaceX2.modelPattern
     separatedCapacityPattern = NamespaceX2.separatedCapacityPattern
     unifiedCapacityPattern = NamespaceX2.unifiedCapacityPattern
     capacityPattern = NamespaceX2.capacityPattern
+    capacityUnitPattern = NamespaceX2.capacityUnitPattern
+    capacitySizesPattern = NamespaceX2.capacitySizesPattern
 
     sameSequencePatterns: Dict[str, List[ Tuple[int, str] ]] = defaultdict(list)
     modelPatterns: Dict[str, List[ Tuple[int, str] ]] = defaultdict(list)
@@ -42,13 +45,8 @@ def x2_blocking(csv_reader, id_col: str, title_col: str, brand_col: str, save_sc
 
         clean_words = cleanedTitle.split()
         clean_words.sort()
-        unique_words = {word: None for word in clean_words}.keys()
+        unique_words = {word: None for word in clean_words if word not in string.punctuation}.keys()
         sortedTitle = ' '.join(unique_words)
-
-        #instance = (id, cleanedTitle)
-        instance = (id, cleanedTitle)
-
-        sameSequencePatterns[sortedTitle].append(instance)
 
         brands = []
         for brand in brandPatterns:
@@ -58,7 +56,7 @@ def x2_blocking(csv_reader, id_col: str, title_col: str, brand_col: str, save_sc
         if len(brands):
             brand = ' & '.join(brands)
         else:
-            match = re.search(row[brand_col], sortedTitle)
+            match = re.fullmatch(brandPattern, row[brand_col])
             if match:
                 brand = match.group()
             else:
@@ -75,6 +73,19 @@ def x2_blocking(csv_reader, id_col: str, title_col: str, brand_col: str, save_sc
             capacity = NO_CAPACITY
         else:
             capacity = capacity.group()
+
+        if capacity == NO_CAPACITY:
+            # The capacity is probably separated (and shuffled)
+            unitMatch = re.search(capacityUnitPattern, sortedTitle)
+            if unitMatch:
+                sizeMatch = re.search(capacitySizesPattern, sortedTitle)
+                if sizeMatch:
+                    capacity = sizeMatch.group().strip() + unitMatch.group().strip()
+
+        #instance = (id, cleanedTitle, brand, model, capacity)
+        instance = (id, cleanedTitle)
+
+        sameSequencePatterns[sortedTitle].append(instance)
 
         if brand != NO_BRAND and model != NO_MODEL and capacity != NO_CAPACITY:
             pattern = " || ".join((brand, model, capacity))
@@ -107,6 +118,7 @@ def x2_blocking(csv_reader, id_col: str, title_col: str, brand_col: str, save_sc
     # so that when we keep only the first 2000000 pairs we are keeping the most likely pairs
     jaccard_similarities = []
     candidate_pairs_real_ids: List[Tuple[int, int]] = []
+
     for pair in candidate_pairs:
         (id1, name1), (id2, name2) = pair
 
@@ -116,7 +128,10 @@ def x2_blocking(csv_reader, id_col: str, title_col: str, brand_col: str, save_sc
             candidate_pairs_real_ids.append((id2, id1))
 
         # compute jaccard similarity
-        jaccard_similarities.append(NamespaceX2.getSimilarityScore(name1, name2))
+        score = NamespaceX2.getSimilarityScore(name1, name2)
+        #if score > -1.0:
+        #    jaccard_similarities.append(score)
+        jaccard_similarities.append(score)
 
     if save_scores:
         candidate_pairs_real_ids = [(pair[0], pair[1], score) for pair, score in sorted(zip(candidate_pairs_real_ids, jaccard_similarities), key=lambda t: t[1], reverse=True)]

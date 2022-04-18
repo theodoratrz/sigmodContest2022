@@ -70,17 +70,16 @@ def x2_blocking(csv_reader, id_col: str, title_col: str, brand_col: str, save_sc
 
         capacity = re.search(capacityPattern, cleanedTitle)
         if not capacity:
-            capacity = NO_CAPACITY
-        else:
-            capacity = capacity.group()
-
-        if capacity == NO_CAPACITY:
             # The capacity is probably separated (and shuffled)
             unitMatch = re.search(capacityUnitPattern, sortedTitle)
             if unitMatch:
                 sizeMatch = re.search(capacitySizesPattern, sortedTitle)
                 if sizeMatch:
                     capacity = sizeMatch.group().strip() + unitMatch.group().strip()
+            if not capacity:
+                capacity = NO_CAPACITY
+        else:
+            capacity = capacity.group()            
 
         #instance = (id, cleanedTitle, brand, model, capacity)
         instance = (id, cleanedTitle)
@@ -90,6 +89,13 @@ def x2_blocking(csv_reader, id_col: str, title_col: str, brand_col: str, save_sc
         if brand != NO_BRAND and model != NO_MODEL and capacity != NO_CAPACITY:
             pattern = " || ".join((brand, model, capacity))
             modelPatterns[pattern].append(instance)
+        #if brand != NO_BRAND:
+        #    if model != NO_MODEL or capacity != NO_CAPACITY:
+        #        pattern = " || ".join((brand, model, capacity))
+        #        modelPatterns[pattern].append(instance)
+        #elif model != NO_MODEL and capacity != NO_CAPACITY:
+        #    pattern = " || ".join((brand, model, capacity))
+        #    modelPatterns[pattern].append(instance)
 
     # add id pairs that share the same pattern to candidate set
     candidate_pairs_1 = []
@@ -102,7 +108,7 @@ def x2_blocking(csv_reader, id_col: str, title_col: str, brand_col: str, save_sc
     candidate_pairs_2 = []
     for pattern in modelPatterns:
         instances = modelPatterns[pattern]
-        if len(instances)<500: #skip patterns that are too common
+        if len(instances)<700: #skip patterns that are too common
             for i in range(len(instances)):
                 for j in range(i + 1, len(instances)):
                     candidate_pairs_2.append((instances[i], instances[j]))

@@ -20,8 +20,15 @@ with open("../datasets/X2.csv") as instancesFile:
     for row in instancesRows:
         instances[row[0]] = row[1]
 
+trueTitles = [(instances[r[0]], instances[r[1]]) for r in trueRows]
+
 missedTitles = [(instances[r[0]], instances[r[1]]) for r in missed]
 falseTitles = [(instances[r[0]], instances[r[1]]) for r in falsePositives]
+
+with open("true.csv", mode="w") as trueCsv:
+    writer = csv.writer(trueCsv)
+
+    writer.writerows(trueTitles)
 
 with open("missed.csv", mode="w") as missedCsv:
     writer = csv.writer(missedCsv)

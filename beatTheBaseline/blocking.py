@@ -1,5 +1,6 @@
 from typing import List, Dict, Tuple
 from collections import defaultdict
+from frozendict import frozendict
 import re
 import csv
 
@@ -11,7 +12,8 @@ from utils import *
 NO_BRAND = 'no_brand'
 NO_MODEL = 'no_model'
 NO_CPU = 'no_cpu'
-NO_CAPACITY = 'no_capacity'
+NO_CAPACITY = NamespaceX2.NO_CAPACITY
+NO_MEMTYPE = 'no_memtype'
 
 def x2_blocking(csv_reader, id_col: str, title_col: str, brand_col: str, save_scores=False) -> List[Tuple[int, int]]:
     """
@@ -23,15 +25,17 @@ def x2_blocking(csv_reader, id_col: str, title_col: str, brand_col: str, save_sc
     trashPattern = NamespaceX2.trashPattern
     brandPattern = NamespaceX2.brandPattern
     brandPatterns = NamespaceX2.brandPatterns
-    modelPattern = NamespaceX2.modelPattern
+    modelPatterns = NamespaceX2.modelPatterns
     separatedCapacityPattern = NamespaceX2.separatedCapacityPattern
     unifiedCapacityPattern = NamespaceX2.unifiedCapacityPattern
     capacityPattern = NamespaceX2.capacityPattern
     capacityUnitPattern = NamespaceX2.capacityUnitPattern
     capacitySizesPattern = NamespaceX2.capacitySizesPattern
+    memTypePatterns = NamespaceX2.memTypePatterns
+    memTypeExtra = NamespaceX2.memTypeLanguagePatterns
 
-    sameSequencePatterns: Dict[str, List[ Tuple[int, str] ]] = defaultdict(list)
-    modelPatterns: Dict[str, List[ Tuple[int, str] ]] = defaultdict(list)
+    sameSequenceClusters: Dict[str, List[ Tuple[int, str] ]] = defaultdict(list)
+    smartClusters: Dict[str, List[ Tuple[int, str] ]] = defaultdict(list)
 
     for i, row in enumerate(csv_reader):
         id = int(row[id_col])
@@ -56,17 +60,55 @@ def x2_blocking(csv_reader, id_col: str, title_col: str, brand_col: str, save_sc
         if len(brands):
             brand = ' & '.join(brands)
         else:
-            match = re.fullmatch(brandPattern, row[brand_col])
+            match = re.fullmatch(brandPattern, str(row[brand_col]).lower())
             if match:
                 brand = match.group()
             else:
-                brand = NO_BRAND
-        
-        model = modelPattern.search(cleanedTitle)
-        if not model:
-            model = NO_MODEL
-        else:
-            model = model.group()
+                #brand = NO_BRAND
+                # no brand found, skip this instance completely
+                continue
+
+        # Try to classify a mem type
+        memType = NO_MEMTYPE
+        for mem in memTypePatterns:
+            if memType == NO_MEMTYPE:
+                for pattern in memTypePatterns[mem]:
+                    if re.search(pattern, cleanedTitle):
+                        memType = mem
+                        break
+            else:    
+                break
+        for mem in memTypeExtra:
+            if memType == NO_MEMTYPE:
+                for pattern in memTypeExtra[mem]:
+                    if re.search(pattern, cleanedTitle):
+                        memType = mem
+                        break
+            else:
+                break
+
+        model = NO_MODEL
+        for b in brands:
+            if model == NO_MODEL:
+                for key in modelPatterns[b]:
+                    if model == NO_MODEL:
+                        if modelPatterns[b][key] is None:
+                            # key is a regex
+                            match = re.search(key, cleanedTitle)
+                            if match:
+                                model = match.group()
+                                break
+                        else:
+                            # key is model category
+                            for pattern in modelPatterns[b][key]:
+                                match = re.search(pattern, cleanedTitle)
+                                if match:
+                                    model = key
+                                    break
+                    else:
+                        break
+            else:
+                break
 
         capacity = re.search(capacityPattern, cleanedTitle)
         if not capacity:
@@ -76,39 +118,41 @@ def x2_blocking(csv_reader, id_col: str, title_col: str, brand_col: str, save_sc
                 sizeMatch = re.search(capacitySizesPattern, sortedTitle)
                 if sizeMatch:
                     capacity = sizeMatch.group().strip() + unitMatch.group().strip()
+                    capacity = capacity.replace('o','b')
             if not capacity:
                 capacity = NO_CAPACITY
         else:
-            capacity = capacity.group()            
+            capacity = capacity.group().replace('o','b')
 
         #instance = (id, cleanedTitle, brand, model, capacity)
-        instance = (id, cleanedTitle)
+        #instance = (id, cleanedTitle)
+        instance = frozendict({
+            "id": id,
+            "title": cleanedTitle,
+            "brand": brand,
+            "type": memType,
+            "model": model,
+            "capacity": capacity,
+        })
 
-        sameSequencePatterns[sortedTitle].append(instance)
+        sameSequenceClusters[sortedTitle].append(instance)
 
-        if brand != NO_BRAND and model != NO_MODEL and capacity != NO_CAPACITY:
-            pattern = " || ".join((brand, model, capacity))
-            modelPatterns[pattern].append(instance)
-        #if brand != NO_BRAND:
-        #    if model != NO_MODEL or capacity != NO_CAPACITY:
-        #        pattern = " || ".join((brand, model, capacity))
-        #        modelPatterns[pattern].append(instance)
-        #elif model != NO_MODEL and capacity != NO_CAPACITY:
-        #    pattern = " || ".join((brand, model, capacity))
-        #    modelPatterns[pattern].append(instance)
+        if brand != NO_BRAND and memType != NO_MEMTYPE and capacity != NO_CAPACITY and model != NO_MODEL:
+            pattern = " || ".join((brand, memType, model, capacity))
+            smartClusters[pattern].append(instance)
 
     # add id pairs that share the same pattern to candidate set
     candidate_pairs_1 = []
-    for pattern in sameSequencePatterns:
-        instances = sameSequencePatterns[pattern]
+    for pattern in sameSequenceClusters:
+        instances = sameSequenceClusters[pattern]
         for i in range(len(instances)):
             for j in range(i + 1, len(instances)):
                 candidate_pairs_1.append((instances[i], instances[j])) #
     # add pairs that share the same pattern to candidate set
     candidate_pairs_2 = []
-    for pattern in modelPatterns:
-        instances = modelPatterns[pattern]
-        if len(instances)<700: #skip patterns that are too common
+    for pattern in smartClusters:
+        instances = smartClusters[pattern]
+        if len(instances)<1000: #skip patterns that are too common
             for i in range(len(instances)):
                 for j in range(i + 1, len(instances)):
                     candidate_pairs_2.append((instances[i], instances[j]))
@@ -126,16 +170,17 @@ def x2_blocking(csv_reader, id_col: str, title_col: str, brand_col: str, save_sc
     candidate_pairs_real_ids: List[Tuple[int, int]] = []
 
     for pair in candidate_pairs:
-        (id1, name1), (id2, name2) = pair
+        #(id1, name1), (id2, name2) = pair
+        instance1, instance2 = pair
 
-        if id1 < id2: # NOTE: This is to make sure in the final output.csv, for a pair id1 and id2 (assume id1<id2), we only include (id1,id2) but not (id2, id1)
-            candidate_pairs_real_ids.append((id1, id2))
+        if instance1["id"] < instance2["id"]: # NOTE: This is to make sure in the final output.csv, for a pair id1 and id2 (assume id1<id2), we only include (id1,id2) but not (id2, id1)
+            candidate_pairs_real_ids.append((instance1["id"], instance2["id"]))
         else:
-            candidate_pairs_real_ids.append((id2, id1))
+            candidate_pairs_real_ids.append((instance2["id"], instance1["id"]))
 
         # compute jaccard similarity
-        score = NamespaceX2.getSimilarityScore(name1, name2)
-        #if score > -1.0:
+        score = NamespaceX2.getSimilarityScore(instance1, instance2)
+        #if score != NamespaceX2.REJECT_SCORE:
         #    jaccard_similarities.append(score)
         jaccard_similarities.append(score)
 

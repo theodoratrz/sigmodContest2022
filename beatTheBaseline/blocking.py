@@ -14,6 +14,7 @@ NO_MODEL = 'no_model'
 NO_CPU = 'no_cpu'
 NO_CAPACITY = NamespaceX2.NO_CAPACITY
 NO_MEMTYPE = 'no_memtype'
+NO_COLOR = 'no_color'
 
 def x2_blocking(csv_reader, id_col: str, title_col: str, brand_col: str, save_scores=False) -> List[Tuple[int, int]]:
     """
@@ -33,6 +34,7 @@ def x2_blocking(csv_reader, id_col: str, title_col: str, brand_col: str, save_sc
     capacitySizesPattern = NamespaceX2.capacitySizesPattern
     memTypePatterns = NamespaceX2.memTypePatterns
     memTypeExtra = NamespaceX2.memTypeLanguagePatterns
+    colors = NamespaceX2.colors
 
     sameSequenceClusters: Dict[str, List[ Tuple[int, str] ]] = defaultdict(list)
     smartClusters: Dict[str, List[ Tuple[int, str] ]] = defaultdict(list)
@@ -124,6 +126,16 @@ def x2_blocking(csv_reader, id_col: str, title_col: str, brand_col: str, save_sc
         else:
             capacity = capacity.group().replace('o','b')
 
+        color = NO_COLOR
+        if 'galaxy' in model:
+            # convert "note9" to "note 9"
+            model = re.sub(r'(?P<note>note)(?P<series>\S)', r'\g<note> \g<series>', model)
+            # find color
+            for c in colors:
+                if c in cleanedTitle:
+                    color = c
+                    break
+
         #instance = (id, cleanedTitle, brand, model, capacity)
         #instance = (id, cleanedTitle)
         instance = frozendict({
@@ -133,12 +145,13 @@ def x2_blocking(csv_reader, id_col: str, title_col: str, brand_col: str, save_sc
             "type": memType,
             "model": model,
             "capacity": capacity,
+            "color": color
         })
 
         sameSequenceClusters[sortedTitle].append(instance)
 
         if brand != NO_BRAND and memType != NO_MEMTYPE and capacity != NO_CAPACITY and model != NO_MODEL:
-            pattern = " || ".join((brand, memType, model, capacity))
+            pattern = " || ".join((brand, memType, model, capacity, color))
             smartClusters[pattern].append(instance)
 
     # add id pairs that share the same pattern to candidate set

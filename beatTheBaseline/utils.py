@@ -265,6 +265,7 @@ class NamespaceX2:
             r"ts[0-9]{1,3}": None
         },        
         "samsung": {
+            # patterns missing
             r"galaxy [ajs][0-9]{1,2}( (plus|ultra))?": None,
             r"galaxy note[ ]?[0-9]{1,2}( (plus|ultra))?": None,
         },
@@ -275,6 +276,42 @@ class NamespaceX2:
         #r"lsd[\w]+": [],
         #r"thn[\w]+": [],
     }
+
+    colors = [
+        'midnight black',
+        'prism white',
+        'prism black',
+        'prism green',
+        'prism blue',
+        'canary yellow',
+        'flamingo pink',
+        'cardinal red',
+        'smoke blue',
+        'deep blue',
+        'coral orange',
+        'black sky',
+        'gold sand',
+        'blue mist and peach cloud',
+        'orchid gray',
+        'metallic copper',
+        'lavender purple',
+        'ocean blue',
+        'pure white',
+        'alpine white',
+        'copper',
+        'red',
+        'black',
+        'blue',
+        'white',
+        'silver',
+        'gold',
+        'violet',
+        'purple',
+        'brown',
+        'orange',
+        'coral',
+        'pink'
+    ]
     #modelPattern = re.compile('|'.join(models))
 
     @staticmethod

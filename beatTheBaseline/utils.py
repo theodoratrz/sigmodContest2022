@@ -173,8 +173,7 @@ class NamespaceX2:
         r"great",
         r"product",
         r"quality",
-        r"flash",
-        r"drive",
+        #r"flash",
         r"memory",
         r"tarjeta",
         r"m[eé]mo(ria|ire)",
@@ -200,8 +199,8 @@ class NamespaceX2:
         "ssd": [r'ssd'],
         "xqd": [r'xqd'],
         "microsd": [r'micro[- ]?sd[hx]?c?', ],
-        "sd": [r'sd[hx]c', r'(secure.*?digital|digital.*?secure)', r'sd(?!cz)'],
-        "usb": [r'ljd', r'usb', r'transmemory', r'hyperx', r'savage', r'cruzer', r'glide', r'fit', r'hx'],
+        "sd": [r'sd[hx]c', r'(secure.*?digital|digital.*?secure)', r'sd(?!cz)', r'exceria'],
+        "usb": [r'ljd', r'usb', r'transmemory', r'hyperx', r'savage', r'cruzer', r'glide', r'fit', r'flash', r'hx'],
     }
     memTypeLanguagePatterns = {
         "microsd": [r'adapter', r'adaptateur', r'adaptor'],
@@ -227,11 +226,15 @@ class NamespaceX2:
             "x": [r'exceria']
         },
         "kingston": {
-            r'dt([a-z]?[0-9])': None
+            r'dt([a-z]?[0-9])': None,
+            "hyperx": [r'hx', r'hyperx'],
+            r"savage": None,
+            r"ultimate": None,
+            "dt": r'data[ ]?traveler'
         },
         "sandisk": {
             "ext+": [r'ext.*(\s)?((plus)|(pro)|\+)'],
-            "ultra+": [r'ultra.*(\s)?((plus)|(pro)|\+)'],
+            "ultra+": [r'ultra.*(\s)?((plus)|(pro)|(performance)|\+)'],
             "ultra": [r'ultra', r'dual', r'double connect.*'],
             "ext": [r'ext(reme)'],
             r'glide': None,
@@ -259,10 +262,14 @@ class NamespaceX2:
         },
         "lexar": {
             #r"ljd[\w]+": None,
+            r'jumpdrive [a-z][0-9]{2}[a-z]?': None,
             r"ljd[a-z][0-9]{2}[-\s]?[0-9]{1,3}": None,
+            "1400x": [r'([0-9]{4}x|x[0-9]{4})']
         },        
         "transcend": {
-            r"ts[0-9]{1,3}": None
+            r"ts[0-9]{1,3}": None,
+            "transcend_sd": [r'sd[hx]c', r'(secure.*?digital|digital.*?secure)', r'sd(?!cz)'],
+            "transcend_usb": [r'usb', r'flash'],
         },        
         "samsung": {
             # patterns missing
@@ -320,7 +327,7 @@ class NamespaceX2:
 
         return re.sub(separatedCapacity, r'\g<size>\g<unit>', s)
     
-    separatedCapacityPattern = r'(?P<size>[0-9]{1,3}) (?P<unit>[gt]b)'
+    separatedCapacityPattern = r'(?P<size>[0-9]{1,3}) (?P<unit>[gt][bo])'
     unifiedCapacityPattern = r'\g<size>\g<unit>'
     capacityPattern = r'[0-9]{1,3}[gt][bo]'
     # Use these with `re.search` only.
@@ -375,8 +382,8 @@ class NamespaceX2:
                     else:
                         weighted_sum += NamespaceX2.ALPHANUMERIC_WEIGHT
         
-        if not hasBonus:
-            if a["capacity"] == NamespaceX2.NO_CAPACITY and b["capacity"] == a["capacity"]:
-                return NamespaceX2.REJECT_SCORE
+        #if not hasBonus:
+        #    if a["capacity"] == NamespaceX2.NO_CAPACITY and b["capacity"] == a["capacity"]:
+        #        return NamespaceX2.REJECT_SCORE
         
         return weighted_sum/max(len(a_words), len(b_words))

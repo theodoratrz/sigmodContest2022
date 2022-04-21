@@ -10,6 +10,7 @@ import string
 from utils import NO_BRAND, NO_MODEL, NO_MEMTYPE, NO_CAPACITY, NO_COLOR
 from x2_utils import X2Instance, X2Utils
 
+
 def findBrands(title: str, brandColumn: str):
     brands = []
     for brand in X2Utils.brandPatterns:
@@ -28,35 +29,35 @@ def findBrands(title: str, brandColumn: str):
     return brand, brands
 
 
-def findPairs(candidate_pairs: Iterable[Tuple[X2Instance]], save_scores = False):
-    # sort candidate pairs by jaccard similarity.
-    # In case we have more than 2000000 pairs,
-    # sort the candidate pairs to put more similar pairs first,
-    # so that when we keep only the first 2000000 pairs we are keeping the most likely pairs
-    jaccard_similarities = []
+def findPairs(candidate_pairs: Iterable[Tuple[X2Instance, X2Instance]], save_scores = False):
+
+    jaccard_similarities: List[float] = []
     candidate_pairs_real_ids: List[Tuple[int, int]] = []
 
     for pair in candidate_pairs:
-        #(id1, name1), (id2, name2) = pair
         instance1, instance2 = pair
-
+        
         if instance1["id"] < instance2["id"]: # NOTE: This is to make sure in the final output.csv, for a pair id1 and id2 (assume id1<id2), we only include (id1,id2) but not (id2, id1)
             candidate_pairs_real_ids.append((instance1["id"], instance2["id"]))
         else:
             candidate_pairs_real_ids.append((instance2["id"], instance1["id"]))
 
-        # compute jaccard similarity
         score = X2Utils.getSimilarityScore(instance1, instance2)
         #if score != REJECT_SCORE:
         #    jaccard_similarities.append(score)
         jaccard_similarities.append(score)
 
+    # sort candidate pairs by similarity score.
+    # In case we have more than 2000000 pairs,
+    # sort the candidate pairs to put more similar pairs first,
+    # so that when we keep only the first 2000000 pairs we are keeping the most likely pairs
     if save_scores:
         candidate_pairs_real_ids = [(pair[0], pair[1], score) for pair, score in sorted(zip(candidate_pairs_real_ids, jaccard_similarities), key=lambda t: t[1], reverse=True)]
     else:
         candidate_pairs_real_ids = [x for _, x in sorted(zip(jaccard_similarities, candidate_pairs_real_ids), reverse=True)]
     return candidate_pairs_real_ids
 
+# TODO: use brand-specific logic
 def createInstanceInfo(instanceId: int, cleanedTitle: str, sortedTitle: str, brand: str, brands: List[str]) -> X2Instance:
     # Try to classify a mem type
         memType = NO_MEMTYPE
@@ -140,12 +141,13 @@ def assignToCluster(
     sameSequenceClusters: Dict[str, List[X2Instance]],
     smartClusters: Dict[str, List[X2Instance]]):
 
-    #sameSequenceClusters[sortedTitle].append(instance)
+    # TODO: Replace with brand-specific logic
+    sameSequenceClusters[sortedTitle].append(instance)
     if instance["brand"] != NO_BRAND and instance["memType"] != NO_MEMTYPE and instance["capacity"] != NO_CAPACITY and instance["model"] != NO_MODEL:
         pattern = " || ".join((instance["brand"], instance["memType"], instance["model"], instance["capacity"], instance["color"]))
         smartClusters[pattern].append(instance)
-    else:
-        sameSequenceClusters[sortedTitle].append(instance)
+    #else:
+    #    sameSequenceClusters[sortedTitle].append(instance)
 
 def x2_blocking(csv_reader: csv.DictReader, id_col: str, title_col: str, brand_col: str, save_scores=False) -> List[Tuple[int, int]]:
     """

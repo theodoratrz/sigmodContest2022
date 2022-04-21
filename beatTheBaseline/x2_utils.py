@@ -2,6 +2,7 @@ from typing import Dict, TypedDict
 import re
 import string
 
+
 # Might be needed
 # from utils import NO_BRAND, NO_MODEL, NO_MEMTYPE, NO_CAPACITY, NO_COLOR
 

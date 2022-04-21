@@ -78,29 +78,6 @@ def createInstanceInfo(instanceId: int, cleanedTitle: str, sortedTitle: str, bra
             else:
                 break
 
-        model = NO_MODEL
-        for b in brands:
-            if model == NO_MODEL:
-                for key in X2Utils.modelPatterns[b]:
-                    if model == NO_MODEL:
-                        if X2Utils.modelPatterns[b][key] is None:
-                            # key is a regex
-                            match = re.search(key, cleanedTitle)
-                            if match:
-                                model = match.group()
-                                break
-                        else:
-                            # key is model category
-                            for pattern in X2Utils.modelPatterns[b][key]:
-                                match = re.search(pattern, cleanedTitle)
-                                if match:
-                                    model = key
-                                    break
-                    else:
-                        break
-            else:
-                break
-
         capacity = re.search(X2Utils.capacityPattern, cleanedTitle)
         if not capacity:
             # The capacity is probably separated (and shuffled)
@@ -114,6 +91,108 @@ def createInstanceInfo(instanceId: int, cleanedTitle: str, sortedTitle: str, bra
                 capacity = NO_CAPACITY
         else:
             capacity = capacity.group().replace('o','b')
+
+        model = NO_MODEL
+        # Sony logic
+        if brand == 'sony':            
+            if memType == NO_MEMTYPE:
+                if 'ux' in cleanedTitle or 'uy' in cleanedTitle or 'sr' in cleanedTitle:
+                    memType = 'microsd'
+                elif 'uf' in cleanedTitle:
+                    memType = 'sd'
+                elif 'usm' in cleanedTitle or capacity == '1tb':
+                    memType = 'usb'
+                pass
+            
+            match = re.search(r'(sf|usm)[-]?[0-9a-z]{1,6}', cleanedTitle)
+            if match:
+                model = match.group().replace('-', '').replace('g', '')
+                if capacity == NO_CAPACITY:
+                    capacity_match = re.search(r'[0-9]+', cleanedTitle)
+                    if capacity_match:
+                        capacity = capacity_match.group() + 'gb'
+                for c in range(ord('0'), ord('9')):
+                    model = model.replace(chr(c), '')
+                if 'sf' in model and memType == NO_MEMTYPE:
+                    memType = 'sd'
+                model = model.replace('sf', '').replace('usm', '')
+            elif memType in ('usb', 'sd'):
+                if 'machqx' in cleanedTitle:
+                    model = 'qx'
+                elif 'type-c' in cleanedTitle or 'type c' in cleanedTitle:
+                    model = 'ca'
+                match = re.search(
+                    r'(serie[s]?[\s-]?[a-z]{1,2}[\s])|([\s][a-z]{1,2}[\-]?serie[s]?)', cleanedTitle)
+                
+                if match is not None:
+                    model = match.group().replace(
+                        ' ',
+                        '').replace(
+                        '-',
+                        '').replace(
+                        'g',
+                        '')
+                    model = model.replace('series', '').replace('serie', '')
+        elif brand == 'sandisk':
+            match = re.search(r'ext.*(\s)?((plus)|(pro)|\+)', cleanedTitle)
+            if match:
+                model = 'ext+'
+            else:
+                match = re.search(r'ext(reme)?', cleanedTitle)
+                if match:
+                    model = 'ext'
+                else:
+                    for p in (r'fit', r'glide', r'blade'):
+                        match = re.search(p, cleanedTitle)
+                        if match:
+                            model = match.group()
+                            break
+                    if match is None:
+                        match = re.search(
+                            r'ultra(\s)?((plus)|(pro)|\+|(performance)|(android))', cleanedTitle)
+                        if match:
+                            model = 'ultra+'
+                        elif re.search(r'(ultra|dual)', cleanedTitle):
+                            model = 'ultra'
+            if 'accessoires montres' in cleanedTitle:
+                if 'extreme' in cleanedTitle:
+                    memType = 'microsd'
+                    model = 'ultra+'
+                elif 'ext pro' in cleanedTitle:
+                    memType = 'microsd'
+                    model = 'ext+'
+            if 'adapter' in cleanedTitle or 'adaptateur' in cleanedTitle:
+                memType = 'microsd'
+            if memType == NO_MEMTYPE:
+                if 'drive' in cleanedTitle:
+                    memType = 'usb'
+                elif 'cruzer' in cleanedTitle:
+                    memType = 'usb'
+                elif model in ('glide', 'fit'):
+                    memType = 'usb'
+        else:
+            model = NO_MODEL
+            for b in brands:
+                if model == NO_MODEL:
+                    for key in X2Utils.modelPatterns[b]:
+                        if model == NO_MODEL:
+                            if X2Utils.modelPatterns[b][key] is None:
+                                # key is a regex
+                                match = re.search(key, cleanedTitle)
+                                if match:
+                                    model = match.group()
+                                    break
+                            else:
+                                # key is model category
+                                for pattern in X2Utils.modelPatterns[b][key]:
+                                    match = re.search(pattern, cleanedTitle)
+                                    if match:
+                                        model = key
+                                        break
+                        else:
+                            break
+                else:
+                    break
 
         color = NO_COLOR
         if 'galaxy' in model:
@@ -141,13 +220,30 @@ def assignToCluster(
     sameSequenceClusters: Dict[str, List[X2Instance]],
     smartClusters: Dict[str, List[X2Instance]]):
 
-    # TODO: Replace with brand-specific logic
-    sameSequenceClusters[sortedTitle].append(instance)
-    if instance["brand"] != NO_BRAND and instance["memType"] != NO_MEMTYPE and instance["capacity"] != NO_CAPACITY and instance["model"] != NO_MODEL:
-        pattern = " || ".join((instance["brand"], instance["memType"], instance["model"], instance["capacity"], instance["color"]))
-        smartClusters[pattern].append(instance)
-    #else:
-    #    sameSequenceClusters[sortedTitle].append(instance)
+    if instance["brand"] == 'sony':
+        if (instance["memType"] in ('ssd', 'microsd')
+                    or instance["capacity"] == '1tb') and instance["capacity"] != NO_CAPACITY:
+                pattern = " || ".join((instance["brand"], instance["capacity"], instance["memType"]))
+                smartClusters[pattern].append(instance)
+        elif instance["memType"] != NO_MEMTYPE and instance["capacity"] != NO_CAPACITY and instance["model"] != NO_MODEL:
+            pattern = " || ".join((instance["brand"], instance["capacity"], instance["memType"], instance["model"]))
+            smartClusters[pattern].append(instance)
+        else:
+            sameSequenceClusters[instance["title"]].append(instance)
+    elif instance["brand"] == 'sandisk':
+        if instance["memType"] != NO_MEMTYPE and instance["capacity"] != NO_CAPACITY:
+            pattern = " || ".join((instance["brand"], instance["capacity"], instance["memType"], instance["model"]))
+            smartClusters[pattern].append(instance)
+        else:
+            sameSequenceClusters[instance["title"]].append(instance)
+    else:
+        # TODO: Replace with brand-specific logic
+        sameSequenceClusters[sortedTitle].append(instance)
+        if instance["brand"] != NO_BRAND and instance["memType"] != NO_MEMTYPE and instance["capacity"] != NO_CAPACITY and instance["model"] != NO_MODEL:
+            pattern = " || ".join((instance["brand"], instance["memType"], instance["model"], instance["capacity"], instance["color"]))
+            smartClusters[pattern].append(instance)
+        #else:
+        #    sameSequenceClusters[sortedTitle].append(instance)
 
 def x2_blocking(csv_reader: csv.DictReader, id_col: str, title_col: str, brand_col: str, save_scores=False) -> List[Tuple[int, int]]:
     """

@@ -17,7 +17,7 @@ class X2Instance(TypedDict):
 
 class X2Utils:
 
-    customPunctuation = re.sub(r'[.-]', '', string.punctuation)
+    customPunctuation = string.punctuation.replace('.', '').replace('-', '').replace('+', '')
 
     trashPhrases = [
         r"[a-z]+(\.com|\.ca|\.es|\.de|\.fr)",
@@ -86,7 +86,7 @@ class X2Utils:
 
     modelPatterns = {
         "sony": {
-            r'(sf|usm)[-]?[0-9]{1,3}': None,
+            r'(sf|usm)[-]?[0-9a-z]{1,6}': None,
             r'serie[s]': None,
             "sony_microsd": [r'ux', r'uy', r'sr'],
             "sony_sd": [r'uf'],

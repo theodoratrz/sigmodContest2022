@@ -133,7 +133,7 @@ def createInstanceInfo(instanceId: int, cleanedTitle: str, sortedTitle: str, bra
                         'g',
                         '')
                     model = model.replace('series', '').replace('serie', '')
-        elif brand == 'sandisk':
+        elif brand == 'sandisk_':
             match = re.search(r'ext.*(\s)?((plus)|(pro)|\+)', cleanedTitle)
             if match:
                 model = 'ext+'
@@ -170,6 +170,48 @@ def createInstanceInfo(instanceId: int, cleanedTitle: str, sortedTitle: str, bra
                     memType = 'usb'
                 elif model in ('glide', 'fit'):
                     memType = 'usb'
+        elif brand == 'lexar':
+            match = re.search(
+                r'((jd)|[\s])[a-wy-z][0-9]{2}[a-z]?', cleanedTitle)
+            if match is None:
+                match = re.search(r'[\s][0-9]+x(?![a-z0-9])', cleanedTitle)
+            if match is None:
+                match = re.search(r'(([\s][x])|(beu))[0-9]+', cleanedTitle)
+            if match is not None:
+                model = match.group().strip() \
+                    .replace('x', '').replace('l', '').replace('j', '').replace('d', '') \
+                    .replace('b', '').replace('e', '').replace('u', '')
+        elif brand == 'intenso':
+            for pattern in X2Utils.modelPatterns['intenso']:
+                match = re.search(pattern, cleanedTitle)
+                if match:
+                    model = match.group()
+                    break
+
+            if model in X2Utils.intensoIdToModel.keys():
+                model = X2Utils.intensoIdToModel[model]
+        elif brand == 'kingston':
+            extra = ''
+            if memType == NO_MEMTYPE:
+                if 'savage' in cleanedTitle or 'hx' in cleanedTitle or 'hyperx' in cleanedTitle:
+                    memType = 'usb'
+                elif 'ultimate' in cleanedTitle:
+                    memType = 'sd'
+            match = re.search(
+                r'dt([a-z]?[0-9])|(data[ ]?t?travel?ler)', cleanedTitle)
+            if match:
+                extra = 'data traveler'
+                type_model = re.search(r'(g[234])|(gen[ ]?[234])', cleanedTitle)
+                if type_model:
+                    model = type_model.group()[-1:]
+            else:
+                type_model = re.search(
+                    r'[\s]((g[234])|(gen[ ]?[234]))[\s]', cleanedTitle)
+                if type_model:
+                    model = type_model.group().strip()[-1:]
+                    extra = 'data traveler'
+            if extra == 'data traveler' and memType == NO_MEMTYPE:
+                memType = 'usb'
         else:
             model = NO_MODEL
             for b in brands:
@@ -230,9 +272,27 @@ def assignToCluster(
             smartClusters[pattern].append(instance)
         else:
             sameSequenceClusters[instance["title"]].append(instance)
-    elif instance["brand"] == 'sandisk':
+    elif instance["brand"] == 'sandisk_':
         if instance["memType"] != NO_MEMTYPE and instance["capacity"] != NO_CAPACITY:
             pattern = " || ".join((instance["brand"], instance["capacity"], instance["memType"], instance["model"]))
+            smartClusters[pattern].append(instance)
+        else:
+            sameSequenceClusters[instance["title"]].append(instance)
+    elif instance["brand"] == 'lexar':
+        if instance["memType"] != NO_MEMTYPE and instance["capacity"] != NO_CAPACITY and instance["model"] != NO_MODEL:
+            pattern = " || ".join((instance["brand"], instance["capacity"], instance["memType"], instance["model"]))
+            smartClusters[pattern].append(instance)
+        else:
+            sameSequenceClusters[instance["title"]].append(instance)
+    elif instance["brand"] == 'intenso':
+        if instance["capacity"] != NO_CAPACITY and instance["model"] != NO_MODEL:
+            pattern = " || ".join((instance["brand"], instance["capacity"], instance["model"]))
+            smartClusters[pattern].append(instance)
+        else:
+            sameSequenceClusters[instance["title"]].append(instance)
+    elif instance["brand"] == 'kingston':
+        if instance["memType"] != NO_MEMTYPE and instance["capacity"] != NO_CAPACITY:
+            pattern = " || ".join((instance["brand"], instance["capacity"], instance["memType"]))
             smartClusters[pattern].append(instance)
         else:
             sameSequenceClusters[instance["title"]].append(instance)

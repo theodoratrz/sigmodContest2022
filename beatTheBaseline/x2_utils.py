@@ -14,6 +14,7 @@ class X2Instance(TypedDict):
     model: str
     capacity: str
     color: str
+    solved: bool
 
 class X2Utils:
 
@@ -288,9 +289,13 @@ class X2Utils:
     ALPHANUMERIC_BONUS_LENGTH = 4
 
     REJECT_SCORE = -1
+    SOLVED_PAIR_SCORE = float(10.1)
 
     @staticmethod
-    def getSimilarityScore(a: Dict[str, str], b: Dict[str, str]) -> float:
+    def getSimilarityScore(a: X2Instance, b: X2Instance) -> float:
+
+        #if a["solved"] and b["solved"]:
+        #    return X2Utils.SOLVED_PAIR_SCORE
 
         a_words = set(a["title"].split())
         b_words = set(b["title"].split())

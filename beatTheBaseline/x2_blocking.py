@@ -133,7 +133,7 @@ def createInstanceInfo(instanceId: int, cleanedTitle: str, sortedTitle: str, bra
                         'g',
                         '')
                     model = model.replace('series', '').replace('serie', '')
-        elif brand == 'sandisk_':
+        elif brand == 'sandisk':
             match = re.search(r'ext.*(\s)?((plus)|(pro)|\+)', cleanedTitle)
             if match:
                 model = 'ext+'
@@ -246,7 +246,7 @@ def createInstanceInfo(instanceId: int, cleanedTitle: str, sortedTitle: str, bra
                     color = c
                     break
 
-        return frozendict({
+        return {
             "id": instanceId,
             "title": cleanedTitle,
             "brand": brand,
@@ -254,7 +254,7 @@ def createInstanceInfo(instanceId: int, cleanedTitle: str, sortedTitle: str, bra
             "model": model,
             "capacity": capacity,
             "color": color
-        })
+        }
 
 def assignToCluster(
     instance: X2Instance,
@@ -265,45 +265,70 @@ def assignToCluster(
     if instance["brand"] == 'sony':
         if (instance["memType"] in ('ssd', 'microsd')
                     or instance["capacity"] == '1tb') and instance["capacity"] != NO_CAPACITY:
-                pattern = " || ".join((instance["brand"], instance["capacity"], instance["memType"]))
-                smartClusters[pattern].append(instance)
+            pattern = " || ".join((instance["brand"], instance["capacity"], instance["memType"]))
+            instance['solved'] = True
+            instance = frozendict(instance)
+            smartClusters[pattern].append(instance)
         elif instance["memType"] != NO_MEMTYPE and instance["capacity"] != NO_CAPACITY and instance["model"] != NO_MODEL:
             pattern = " || ".join((instance["brand"], instance["capacity"], instance["memType"], instance["model"]))
+            instance['solved'] = True
+            instance = frozendict(instance)
             smartClusters[pattern].append(instance)
         else:
-            sameSequenceClusters[instance["title"]].append(instance)
+            instance['solved'] = False
+            instance = frozendict(instance)
+            sameSequenceClusters[sortedTitle].append(instance)
     elif instance["brand"] == 'sandisk_':
         if instance["memType"] != NO_MEMTYPE and instance["capacity"] != NO_CAPACITY:
             pattern = " || ".join((instance["brand"], instance["capacity"], instance["memType"], instance["model"]))
+            instance['solved'] = True
+            instance = frozendict(instance)
             smartClusters[pattern].append(instance)
         else:
-            sameSequenceClusters[instance["title"]].append(instance)
+            instance['solved'] = False
+            instance = frozendict(instance)
+            sameSequenceClusters[sortedTitle].append(instance)
     elif instance["brand"] == 'lexar':
         if instance["memType"] != NO_MEMTYPE and instance["capacity"] != NO_CAPACITY and instance["model"] != NO_MODEL:
             pattern = " || ".join((instance["brand"], instance["capacity"], instance["memType"], instance["model"]))
+            instance['solved'] = True
+            instance = frozendict(instance)
             smartClusters[pattern].append(instance)
         else:
-            sameSequenceClusters[instance["title"]].append(instance)
+            instance['solved'] = False
+            instance = frozendict(instance)
+            sameSequenceClusters[sortedTitle].append(instance)
     elif instance["brand"] == 'intenso':
         if instance["capacity"] != NO_CAPACITY and instance["model"] != NO_MODEL:
             pattern = " || ".join((instance["brand"], instance["capacity"], instance["model"]))
+            instance['solved'] = True
+            instance = frozendict(instance)
             smartClusters[pattern].append(instance)
         else:
-            sameSequenceClusters[instance["title"]].append(instance)
+            instance['solved'] = False
+            instance = frozendict(instance)
+            sameSequenceClusters[sortedTitle].append(instance)
     elif instance["brand"] == 'kingston':
         if instance["memType"] != NO_MEMTYPE and instance["capacity"] != NO_CAPACITY:
             pattern = " || ".join((instance["brand"], instance["capacity"], instance["memType"]))
+            instance['solved'] = True
+            instance = frozendict(instance)
             smartClusters[pattern].append(instance)
         else:
-            sameSequenceClusters[instance["title"]].append(instance)
+            instance['solved'] = False
+            instance = frozendict(instance)
+            sameSequenceClusters[sortedTitle].append(instance)
     else:
         # TODO: Replace with brand-specific logic
-        sameSequenceClusters[sortedTitle].append(instance)
+        #instance['solved'] = False
+        #sameSequenceClusters[sortedTitle].append(frozendict(instance))
         if instance["brand"] != NO_BRAND and instance["memType"] != NO_MEMTYPE and instance["capacity"] != NO_CAPACITY and instance["model"] != NO_MODEL:
             pattern = " || ".join((instance["brand"], instance["memType"], instance["model"], instance["capacity"], instance["color"]))
-            smartClusters[pattern].append(instance)
-        #else:
-        #    sameSequenceClusters[sortedTitle].append(instance)
+            instance['solved'] = True
+            smartClusters[pattern].append(frozendict(instance))
+        else:
+            instance['solved'] = False
+            sameSequenceClusters[sortedTitle].append(frozendict(instance))
 
 def x2_blocking(csv_reader: csv.DictReader, id_col: str, title_col: str, brand_col: str, save_scores=False) -> List[Tuple[int, int]]:
     """
@@ -353,7 +378,7 @@ def x2_blocking(csv_reader: csv.DictReader, id_col: str, title_col: str, brand_c
     candidate_pairs_2 = []
     for pattern in smartClusters:
         instances = smartClusters[pattern]
-        if len(instances)<1000: #skip patterns that are too common
+        if len(instances)<2000: #skip patterns that are too common
             for i in range(len(instances)):
                 for j in range(i + 1, len(instances)):
                     candidate_pairs_2.append((instances[i], instances[j]))

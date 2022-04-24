@@ -7,10 +7,10 @@ SUBMISSION_MODE = False
 customPunctuation = string.punctuation.replace(".", "")
 
 trash = [
-    r"[a-z]+.com",
-    r"[a-z]+.ca",
+    r"[a-z]+\.com",
+    r"[a-z]+\.ca",
     r"win(dows)? (xp|7|8.1|8|10)( pro(fessional)?| home premium)? ?((64|32)-bit)?",
-    r"com:"
+    r"com:",
     r"amazon",
     r"alibaba",
     r"\d+ ?[t][b]",
@@ -31,7 +31,7 @@ trash = [
     r"accessories",
     r"wireless lan",
     r"wifi",
-    r"wholeshale"
+    r"wholeshale",
     r"notebook",
     r"led",
     r"ips",

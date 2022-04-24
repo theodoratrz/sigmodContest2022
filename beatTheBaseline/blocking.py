@@ -140,7 +140,7 @@ def x1_blocking(csv_reader, id_col: str, title_col: str, save_scores=False) -> L
         sortedTitle = ' '.join(unique_words)
 
         #instance = (id, cleanedTitle)
-        instance = (id, rawTitle)
+        instance = (id, cleanedTitle)
 
         sameSequencePatterns[sortedTitle].append(instance)
 
@@ -263,9 +263,11 @@ if __name__ == "__main__":
 
     with open('X1.csv') as x1_file:
         x1_reader = csv.DictReader(x1_file)
-        X1_candidate_pairs = x1_blocking(x1_reader, id_col='id', title_col='title', save_scores=(not SUBMISSION_MODE))
+        #X1_candidate_pairs = x1_blocking(x1_reader, id_col='id', title_col='title', save_scores=(not SUBMISSION_MODE))
+        X1_candidate_pairs = []
     with open('X2.csv') as x2_file:
         x2_reader = csv.DictReader(x2_file)
-        X2_candidate_pairs = x2_blocking(x2_reader)
+        #X2_candidate_pairs = x2_blocking(x2_reader)
+        X2_candidate_pairs = []
 
     save_output(X1_candidate_pairs, X2_candidate_pairs, submission_mode=SUBMISSION_MODE)

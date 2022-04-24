@@ -22,6 +22,7 @@ with open("../datasets/X2.csv") as instancesFile:
 
 missedTitles = [(instances[r[0]], instances[r[1]]) for r in missed]
 falseTitles = [(instances[r[0]], instances[r[1]]) for r in falsePositives]
+trueTitles = [(instances[r[0]], instances[r[1]]) for r in trueRows]
 
 with open("missed.csv", mode="w") as missedCsv:
     writer = csv.writer(missedCsv)
@@ -32,6 +33,12 @@ with open("false.csv", mode="w") as falseCsv:
     writer = csv.writer(falseCsv)
 
     writer.writerows(falseTitles)
+pass
+
+with open("true.csv", mode="w") as trueCsv:
+    writer = csv.writer(trueCsv)
+
+    writer.writerows(trueTitles)
 pass
 
 print(f"Common: {len(common)}")

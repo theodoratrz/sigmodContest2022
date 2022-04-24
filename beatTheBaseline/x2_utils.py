@@ -1,4 +1,4 @@
-from typing import Dict, TypedDict
+from typing import TypedDict
 import re
 import string
 
@@ -12,6 +12,7 @@ class X2Instance(TypedDict):
     brand: str
     memType: str
     model: str
+    type: str
     capacity: str
     color: str
     solved: bool

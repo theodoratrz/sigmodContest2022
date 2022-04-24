@@ -2,10 +2,11 @@ import re
 import string
 
 
-SUBMISSION_MODE = True
+SUBMISSION_MODE = False
 
 NO_BRAND = 'no_brand'
 NO_MODEL = 'no_model'
+NO_TYPE = 'no_type'
 NO_CPU = 'no_cpu'
 NO_MEMTYPE = 'no_memtype'
 NO_COLOR = 'no_color'

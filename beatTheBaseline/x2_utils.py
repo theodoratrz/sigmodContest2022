@@ -293,6 +293,16 @@ class X2Utils:
     SOLVED_PAIR_SCORE = float(10.1)
 
     @staticmethod
+    def jaccardSimilarity(a: X2Instance, b: X2Instance) -> float:
+        a_words = set(a["title"].split())
+        b_words = set(b["title"].split())
+        if len(a_words) == 0 or len(b_words) == 0:
+            return 0.0
+
+        common = a_words.intersection(b_words)
+        return len(common) / max(len(a_words), len(b_words))
+
+    @staticmethod
     def getSimilarityScore(a: X2Instance, b: X2Instance) -> float:
 
         #if a["solved"] and b["solved"]:

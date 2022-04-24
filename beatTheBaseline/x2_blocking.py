@@ -46,7 +46,9 @@ def findPairs(candidate_pairs: Iterable[Tuple[X2Instance, X2Instance]], save_sco
         else:
             candidate_pairs_real_ids.append((instance2["id"], instance1["id"]))
 
-        score = X2Utils.getSimilarityScore(instance1, instance2)
+        score = X2Utils.jaccardSimilarity(instance1, instance2)
+        
+        #score = X2Utils.getSimilarityScore(instance1, instance2)
         #if score != REJECT_SCORE:
         #    jaccard_similarities.append(score)
         jaccard_similarities.append(score)

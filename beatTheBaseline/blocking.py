@@ -116,6 +116,25 @@ def x2_blocking(csv_reader, id_col: str, title_col: str, save_scores=False) -> L
         candidate_pairs_real_ids = [x for _, x in sorted(zip(jaccard_similarities, candidate_pairs_real_ids), reverse=True)]
     return candidate_pairs_real_ids
 
+def lenovo_blocking(title: str) -> str:
+    lenovoNumber = ''
+    match = re.search(r'[0-9]{4}[0-9a-z]{3}(?![0-9a-z])', title)
+    if not match:
+        match = re.search(r'[0-9]{4}(?![0-9a-z])')
+    if match:
+        lenovoNumber = match.group().replace('-', '')[:4]
+    pass
+
+def lenovo_processing(model: str) -> str:
+    newModel = model.replace('touch', '')\
+                    .replace('tablet 3435', '2320')\
+                    .replace('tablet 3435', '2320')\
+                    .replace('x230t 3435', 'x230 2320')\
+                    .replace('thinkpad', '')
+
+    newModel = re.sub(r'4291', r'4290', newModel)
+    return re.sub(' +', ' ', newModel).strip()
+
 def x1_blocking(csv_reader, id_col: str, title_col: str, save_scores=False) -> List[Tuple[int, int]]:
     """
     This function performs blocking on X1 dataset.
@@ -162,13 +181,22 @@ def x1_blocking(csv_reader, id_col: str, title_col: str, save_scores=False) -> L
         else:
             model = model.group()
 
-        cpu = cpuModelPattern.search(cleanedTitle)
-        if not cpu:
+        if brand == 'lenovo':
+            model = lenovo_processing(model)
+
+        #cpu = cpuModelPattern.search(cleanedTitle)
+        #if not cpu:
             #cpu = cpuBrandPattern.search(cleanedTitle)
             #cpu = cpu.group() if cpu else 'no_cpu'
-            cpu = 'no_cpu'
-        else:
-            cpu = cpu.group()
+            #cpu = 'no_cpu'
+        #else:
+        #    cpu = cpu.group().strip()
+        cpu = 'no_cpu'
+        for pattern in cpus:
+            match = re.search(pattern, cleanedTitle)
+            if match:
+                cpu = match.group().strip()
+                break
 
         if model != 'no_model' and cpu != 'no_cpu':
             pattern = " || ".join((brand, model, cpu))
@@ -263,8 +291,8 @@ if __name__ == "__main__":
 
     with open('X1.csv') as x1_file:
         x1_reader = csv.DictReader(x1_file)
-        #X1_candidate_pairs = x1_blocking(x1_reader, id_col='id', title_col='title', save_scores=(not SUBMISSION_MODE))
-        X1_candidate_pairs = []
+        X1_candidate_pairs = x1_blocking(x1_reader, id_col='id', title_col='title', save_scores=(not SUBMISSION_MODE))
+        #X1_candidate_pairs = []
     with open('X2.csv') as x2_file:
         x2_reader = csv.DictReader(x2_file)
         #X2_candidate_pairs = x2_blocking(x2_reader)

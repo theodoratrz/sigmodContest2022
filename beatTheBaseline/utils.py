@@ -73,7 +73,7 @@ brandPattern = re.compile('|'.join(brandPatterns))
 
 models = [
     r'elitebook', r'compaq', r'folio', r'pavilion', r'zbook', r'envy',
-    r'thinkpad [a-z][0-9]{1,3}[t]?( \w+)? [0-9]{4}', r'thinkpad [a-z][0-9]{1,3}[t]?', 
+    r'thinkpad [a-z][0-9]{1,3}[t]?( \w+)?( \w+)? [0-9]{4}', r'thinkpad [a-z][0-9]{1,3}[t]?', 
     r'[a-z][0-9]{1,3}[t]?( \w+)?( [0-9]{4})?', r'x1 carbon', r'thinkpad', r'ideapad', r'flex', r'yoga',
 
     r'inspiron', r'latitude', r'precision', r'vostro', r'xps',
@@ -88,9 +88,10 @@ modelPattern = re.compile('|'.join(models))
 cpus = [
     # intel
     #r'(intel )?(core )?i[357]( [0-9]{3,4}[q]?[mu])?',
-    r'(intel )?(core )?i3( [0-9]{3,4}[q]?[mu])?',
-    r'(intel )?(core )?i5( [0-9]{3,4}[q]?[mu])?',
-    r'(intel )?(core )?i7( [0-9]{3,4}[q]?[mu])?',
+    r'(^| )i[357]( [0-9]{3,4}[q]?[mu])',
+    #r'(^| )i5( [0-9]{3,4}[q]?[mu])',
+    #r'(^| )i7( [0-9]{3,4}[q]?[mu])',
+    r'(^| )i[357]',
     r'(intel )?(core )?2 duo',
     r'(intel )?celeron', r'(intel )?pentium', r'(intel )?centrino', r'(intel )?xeon',
     r'[0-9]{3,4}[q]?[mu]', r'[pnt][0-9]{4}', r'[0-9]{4}[y]', r'[s]?[l][0-9]{4}', r'((1st)|(2nd)|(3rd)|([4-9]th))[ ][g]en',

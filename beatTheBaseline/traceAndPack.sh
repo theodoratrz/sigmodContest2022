@@ -10,7 +10,7 @@ if [ -d __pycache__ ]; then
 fi
 
 echo "----------------- Running -----------------"
-reprozip trace python3 blocking.py
+reprozip trace python3 run.py
 echo "----------------- Packing -----------------"
 reprozip pack submission.rpz
 

@@ -110,6 +110,16 @@ WORD_WEIGHT = 0.2
 BRAND_WEIGHT = 0.5
 ALPHANUMERIC_WEIGHT = 1
 
+def jaccardSimilarity(a: str, b: str) -> float:
+    a_words = set(a.split())
+    b_words = set(b.split())
+    if len(a_words) == 0 or len(b_words) == 0:
+        return 0.0
+    
+    common = a_words.intersection(b_words)
+
+    return len(common)/max(len(a_words), len(b_words))
+
 def getSimilarityScore(a: str, b: str) -> float:
 
     a_words = set(a.split())

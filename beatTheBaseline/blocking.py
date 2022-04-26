@@ -245,6 +245,7 @@ def x1_blocking(csv_reader, id_col: str, title_col: str, save_scores=False) -> L
 
         # compute jaccard similarity
         jaccard_similarities.append(getSimilarityScore(name1, name2))
+        #jaccard_similarities.append(jaccardSimilarity(name1, name2))
 
     if save_scores:
         candidate_pairs_real_ids = [(pair[0], pair[1], score) for pair, score in sorted(zip(candidate_pairs_real_ids, jaccard_similarities), key=lambda t: t[1], reverse=True)]

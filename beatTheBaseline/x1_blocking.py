@@ -1,10 +1,20 @@
-from typing import List, Dict, Tuple
+# *Not standard*
+from frozendict import frozendict
+
+from typing import List, Dict, Tuple, TypedDict
 from collections import defaultdict
 import re
 import string
 
-from utils import NO_BRAND, NO_CPU, NO_MODEL, jaccardSimilarity
+from utils import NO_BRAND, NO_CPU, NO_MODEL, NO_RAM, jaccardSimilarity
 
+class X1Instance(TypedDict):
+    id: int
+    title: str
+    brand: str
+    model: str
+    cpu: str
+    ram: str
 
 customPunctuation = string.punctuation.replace(".", "")
 
@@ -72,10 +82,22 @@ brandPatterns = [
 ]
 brandPattern = re.compile('|'.join(brandPatterns))
 
+brandModels = {
+    'lenovo': [
+        r'thinkpad [a-z][0-9]{1,3}[t]?( \w+)?( \w+)? [0-9]{4}',
+        r'thinkpad [a-z][0-9]{1,3}[t]?', 
+        r'[a-z][0-9]{1,3}[t]?( \w+)?( [0-9]{4})?',
+        r'x1 carbon',
+        r'thinkpad',
+        r'ideapad',
+        r'flex',
+        r'yoga',
+    ]
+}
 models = [
+    r'thinkpad [a-z][0-9]{1,3}[te]?( \w+)?( \w+)? [0-9]{4}', r'thinkpad [a-z][0-9]{1,3}[te]?', 
+    r'[a-z][0-9]{1,3}[te]?( \w+)?( [0-9]{4})?', r'x1 carbon', r'thinkpad', r'ideapad', r'flex', r'yoga',
     r'elitebook', r'compaq', r'folio', r'pavilion', r'zbook', r'envy',
-    r'thinkpad [a-z][0-9]{1,3}[t]?( \w+)?( \w+)? [0-9]{4}', r'thinkpad [a-z][0-9]{1,3}[t]?', 
-    r'[a-z][0-9]{1,3}[t]?( \w+)?( [0-9]{4})?', r'x1 carbon', r'thinkpad', r'ideapad', r'flex', r'yoga',
 
     r'inspiron', r'latitude', r'precision', r'vostro', r'xps',
     r'zenbook', r'vivobook', r'rog', r'chromebook',
@@ -88,10 +110,7 @@ modelPattern = re.compile('|'.join(models))
 
 cpus = [
     # intel
-    #r'(intel )?(core )?i[357]( [0-9]{3,4}[q]?[mu])?',
-    r'(^| )i[357]( [0-9]{3,4}[q]?[mu])',
-    #r'(^| )i5( [0-9]{3,4}[q]?[mu])',
-    #r'(^| )i7( [0-9]{3,4}[q]?[mu])',
+    r'(^| )i[357]( [0-9]{3,4}[q]?(lm|[mu]))',
     r'(^| )i[357]',
     r'(intel )?(core )?2 duo',
     r'(intel )?celeron', r'(intel )?pentium', r'(intel )?centrino', r'(intel )?xeon',
@@ -104,6 +123,8 @@ cpus = [
 cpuModelPattern = re.compile('|'.join(cpus))
 cpuBrandPattern = re.compile(r'intel|amd')
 
+ramCapacityPattern = r'(2|4|8|16|32)[ ]?gb'
+
 numberPattern = r'[0-9]+(\.[0-9]+)?'
 NUMBER_WEIGHT = 0.15
 wordPattern = r'(?=\D)[\w]+'
@@ -111,10 +132,17 @@ WORD_WEIGHT = 0.2
 BRAND_WEIGHT = 0.5
 ALPHANUMERIC_WEIGHT = 1
 
-def getSimilarityScore(a: str, b: str) -> float:
+SOLVED_PAIR_SCORE = float(10.1)
 
-    a_words = set(a.split())
-    b_words = set(b.split())
+def getSimilarityScore(a: X1Instance, b: X1Instance) -> float:
+
+    if a['brand'] == 'lenovo' and a['cpu'] == b['cpu'] and a['model'] == b['model']:
+        if a['cpu'] != NO_CPU and len(a['cpu']) >= 5:
+            if a['model'] != NO_MODEL and len(a['model']) >= 8:
+                return SOLVED_PAIR_SCORE
+
+    a_words = set(a['title'].split())
+    b_words = set(b['title'].split())
     if len(a_words) == 0 or len(b_words) == 0:
         return 0.0
     
@@ -148,15 +176,29 @@ def lenovo_blocking(title: str) -> str:
         lenovoNumber = match.group().replace('-', '')[:4]
     pass
 
-def lenovo_processing(model: str) -> str:
-    newModel = model.replace('touch', '')\
-                    .replace('tablet 3435', '2320')\
-                    .replace('tablet 3435', '2320')\
-                    .replace('x230t 3435', 'x230 2320')\
-                    .replace('thinkpad', '')
+def lenovo_processing(title: str, model: str) -> Tuple[str, str]:
 
-    newModel = re.sub(r'4291', r'4290', newModel)
-    return re.sub(' +', ' ', newModel).strip()
+    newModel = re.sub(r'(touch|thinkpad)', '', model)
+    newModel = re.sub(r'3435[a-z0-9]{3}', r'3435', newModel)
+    newModel = re.sub(r'tablet 3435', r'2320', newModel)
+    newModel = re.sub(r'x230[t]? 3435', r'x230 2320', newModel)
+    #newModel = model.replace('tablet 3435', '2320')\
+    #                .replace('x230t 3435', 'x230 2320')
+
+    newModel = re.sub(r'(4291|4287)', r'4290', newModel)
+    newModel = re.sub(r'2339', r'2338', newModel)
+    
+    if re.search(r'x[0-9]{3}e', newModel):
+        match = re.search(r'e-[0-9]{3}', title)
+        if match:
+            newModel = newModel + ' ' + match.group()
+
+    ram = NO_RAM
+    match = re.search(ramCapacityPattern, title)
+    if match:
+        ram = re.search(r'[0-9]+', match.group()).group()
+
+    return re.sub(' +', ' ', newModel).strip(), ram
 
 def x1_blocking(csv_reader, id_col: str, title_col: str, save_scores=False) -> List[Tuple[int, int]]:
     """
@@ -165,11 +207,11 @@ def x1_blocking(csv_reader, id_col: str, title_col: str, save_scores=False) -> L
     :return: candidate set of tuple pairs
     """
 
-    sameSequencePatterns: Dict[str, List[ Tuple[int, str] ]] = defaultdict(list)
-    modelPatterns: Dict[str, List[ Tuple[int, str] ]] = defaultdict(list)
+    sameSequencePatterns: Dict[str, List[ X1Instance ]] = defaultdict(list)
+    modelPatterns: Dict[str, List[ X1Instance ]] = defaultdict(list)
 
     for i, row in enumerate(csv_reader):
-        id = int(row[id_col])
+        instanceId = int(row[id_col])
         rawTitle = str(row[title_col]).lower()
 
         noTrash = re.sub(trashPattern, '', rawTitle)
@@ -180,10 +222,6 @@ def x1_blocking(csv_reader, id_col: str, title_col: str, save_scores=False) -> L
         clean_words.sort()
         unique_words = {word: None for word in clean_words}.keys()
         sortedTitle = ' '.join(unique_words)
-
-        instance = (id, cleanedTitle)
-
-        sameSequencePatterns[sortedTitle].append(instance)
         
         brands = []
         for brand in brandPatterns:
@@ -192,14 +230,21 @@ def x1_blocking(csv_reader, id_col: str, title_col: str, save_scores=False) -> L
                 brands.append(match.group())
         brand = ' & '.join(brands) if len(brands) else NO_BRAND
         
-        model = modelPattern.search(cleanedTitle)
-        if not model:
-            model = NO_MODEL
-        else:
-            model = model.group()
+        #model = modelPattern.search(cleanedTitle)
+        #if not model:
+        #    model = NO_MODEL
+        #else:
+        #    model = model.group()
+        model = NO_MODEL
+        for m in models:
+            match = re.search(m, cleanedTitle)
+            if match:
+                model = match.group()
+                break
 
+        ram = NO_RAM
         if brand == 'lenovo':
-            model = lenovo_processing(model)
+            model, ram = lenovo_processing(rawTitle, model)
 
         cpu = NO_CPU
         for pattern in cpus:
@@ -208,21 +253,34 @@ def x1_blocking(csv_reader, id_col: str, title_col: str, save_scores=False) -> L
                 cpu = match.group().strip()
                 break
 
-        if model != NO_MODEL and cpu != NO_CPU:
-            pattern = " || ".join((brand, model, cpu))
+        #instance = (instanceId, cleanedTitle)
+        instance: X1Instance = frozendict({
+            'id': instanceId,
+            'title': cleanedTitle,
+            'brand': brand,
+            'model': model,
+            'cpu': cpu,
+            'ram': ram
+        })
+
+        if brand == 'lenovo' and model != NO_MODEL and len(model) >= 8:
+            pattern = " || ".join((brand, model, cpu, ram))
             modelPatterns[pattern].append(instance)
-        #elif brand == 'lenovo':
-        #    pass
+        elif model != NO_MODEL and cpu != NO_CPU:
+            pattern = " || ".join((brand, model, cpu, ram))
+            modelPatterns[pattern].append(instance)        
+
+        sameSequencePatterns[sortedTitle].append(instance)
 
     # add id pairs that share the same pattern to candidate set
-    candidate_pairs_1 = []
+    candidate_pairs_1: List[Tuple[X1Instance, X1Instance]] = []
     for pattern in sameSequencePatterns:
         instances = sameSequencePatterns[pattern]
         for i in range(len(instances)):
             for j in range(i + 1, len(instances)):
                 candidate_pairs_1.append((instances[i], instances[j])) #
     # add pairs that share the same pattern to candidate set
-    candidate_pairs_2 = []
+    candidate_pairs_2: List[Tuple[X1Instance, X1Instance]] = []
     for pattern in modelPatterns:
         instances = modelPatterns[pattern]
         if len(instances)<500: #skip patterns that are too common
@@ -233,7 +291,7 @@ def x1_blocking(csv_reader, id_col: str, title_col: str, save_scores=False) -> L
     # remove duplicate pairs and take union
     candidate_pairs_1 = set(candidate_pairs_1)
     candidate_pairs_2 = set(candidate_pairs_2)
-    candidate_pairs = list(candidate_pairs_2.union(candidate_pairs_1))
+    candidate_pairs: List[Tuple[X1Instance, X1Instance]] = list(candidate_pairs_2.union(candidate_pairs_1))
 
     # sort candidate pairs by jaccard similarity.
     # In case we have more than 1000000 pairs (or 2000000 pairs for the second dataset),
@@ -242,15 +300,16 @@ def x1_blocking(csv_reader, id_col: str, title_col: str, save_scores=False) -> L
     jaccard_similarities = []
     candidate_pairs_real_ids: List[Tuple[int, int]] = []
     for pair in candidate_pairs:
-        (id1, name1), (id2, name2) = pair
+        #(id1, name1), (id2, name2) = pair
+        instance1, instance2 = pair
 
-        if id1 < id2: # NOTE: This is to make sure in the final output.csv, for a pair id1 and id2 (assume id1<id2), we only include (id1,id2) but not (id2, id1)
-            candidate_pairs_real_ids.append((id1, id2))
+        if instance1['id'] < instance2['id']: # NOTE: This is to make sure in the final output.csv, for a pair id1 and id2 (assume id1<id2), we only include (id1,id2) but not (id2, id1)
+            candidate_pairs_real_ids.append((instance1['id'], instance2['id']))
         else:
-            candidate_pairs_real_ids.append((id2, id1))
+            candidate_pairs_real_ids.append((instance2['id'], instance1['id']))
 
         # compute jaccard similarity
-        jaccard_similarities.append(getSimilarityScore(name1, name2))
+        jaccard_similarities.append(getSimilarityScore(instance1, instance2))
         #jaccard_similarities.append(jaccardSimilarity(name1, name2))
 
     if save_scores:

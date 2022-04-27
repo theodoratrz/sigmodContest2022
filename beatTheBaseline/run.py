@@ -3,7 +3,7 @@ import csv
 
 import pandas as pd
 
-from utils import SUBMISSION_MODE, TARGET_DATASET
+from utils import IGNORE_DATASET, SUBMISSION_MODE, TARGET_DATASET
 from x1_blocking import x1_blocking
 from x2_blocking import x2_blocking
 
@@ -46,13 +46,13 @@ if __name__ == "__main__":
 
     with open('X1.csv') as x1_file:
         x1_reader = csv.DictReader(x1_file)
-        if SUBMISSION_MODE or TARGET_DATASET == '1':
+        if (SUBMISSION_MODE and IGNORE_DATASET != '1') or TARGET_DATASET == '1':
             X1_candidate_pairs = x1_blocking(x1_reader, id_col='id', title_col='title', save_scores=(not SUBMISSION_MODE))
         else:
             X1_candidate_pairs = []
     with open('X2.csv') as x2_file:
         x2_reader = csv.DictReader(x2_file)
-        if SUBMISSION_MODE or TARGET_DATASET == '2':
+        if (SUBMISSION_MODE and IGNORE_DATASET != '2') or TARGET_DATASET == '2':
             X2_candidate_pairs = x2_blocking(x2_reader, id_col='id', title_col='name', brand_col='brand', save_scores=(not SUBMISSION_MODE))
         else:
             X2_candidate_pairs = []

@@ -2,7 +2,7 @@ import re
 import string
 
 
-SUBMISSION_MODE = False
+SUBMISSION_MODE = True
 
 NO_BRAND = 'no_brand'
 NO_MODEL = 'no_model'

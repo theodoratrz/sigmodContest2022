@@ -7,6 +7,8 @@ import re
 import csv
 import string
 
+from numpy import mat
+
 from utils import NO_BRAND, NO_MODEL, NO_MEMTYPE, NO_TYPE, NO_CAPACITY, NO_COLOR
 from x2_utils import X2Instance, X2Utils
 
@@ -160,8 +162,15 @@ def createInstanceInfo(instanceId: int, cleanedTitle: str, sortedTitle: str, bra
                         r'ultra(\s)?((plus)|(pro)|\+|(performance)|(android))', cleanedTitle)
                     if match:
                         model = 'ultra+'
-                    elif re.search(r'(ultra|dual)', cleanedTitle):
+                    elif re.search(r'(ultra)', cleanedTitle):
                         model = 'ultra'
+                    elif re.search(r'(dual)', cleanedTitle):
+                        model = 'dual'
+        if match is None:
+            match = re.search(r'cru[i]?zer', cleanedTitle)
+            if match:
+                model = 'cruzer'
+    
         if 'accessoires montres' in cleanedTitle:
             if 'extreme' in cleanedTitle:
                 memType = 'microsd'
@@ -189,15 +198,44 @@ def createInstanceInfo(instanceId: int, cleanedTitle: str, sortedTitle: str, bra
             model = match.group().strip() \
                 .replace('x', '').replace('l', '').replace('j', '').replace('d', '') \
                 .replace('b', '').replace('e', '').replace('u', '')
-    elif brand == 'intenso':
-        for pattern in X2Utils.modelPatterns['intenso']:
-            match = re.search(pattern, cleanedTitle)
+        if model == NO_MODEL:
+            match = re.search(r"jumpdrive", cleanedTitle)
             if match:
-                model = match.group()
-                break
+                match = re.search(r"c20[cm]?", cleanedTitle)
+                if match:
+                    model = "c20"
+                else:
+                    match = re.search(r"p20", cleanedTitle)
+                    if match:
+                        model = "p20"
+                    else:
+                        match = re.search(r"s70", cleanedTitle)
+                        model = "jumpdrive"
+            if model == NO_MODEL:
+                model = "jumpdrive"
+    elif brand == 'intenso':
+        #for pattern in X2Utils.modelPatterns['intenso']:
+            #match = re.search(pattern, cleanedTitle)
+            #if match:
+            #    model = match.group()
+            #    break
 
         if model in X2Utils.intensoIdToModel.keys():
             model = X2Utils.intensoIdToModel[model]
+        if model == NO_MODEL:
+            match = re.search(r"basic",cleanedTitle)
+            if match:
+                model = "basic"
+            else:
+                match = re.search(r"rainbow", cleanedTitle)
+                if match:
+                    model = "rainbow"
+                else:
+                    for p in [r"premium", r"llave", r"tipo a plata"]:
+                        match = re.search(p, cleanedTitle)
+                        if match:
+                            model = "premium"
+                            break         
     elif brand == 'kingston':
         if memType == NO_MEMTYPE:
             if 'savage' in cleanedTitle or 'hx' in cleanedTitle or 'hyperx' in cleanedTitle:
@@ -216,6 +254,51 @@ def createInstanceInfo(instanceId: int, cleanedTitle: str, sortedTitle: str, bra
                 model = 'data traveler'
         if model == 'data traveler' and memType == NO_MEMTYPE:
             memType = 'usb'
+    elif brand == "samsung":
+        if 'lte' in cleanedTitle:
+            for pattern in [r"galaxy [ajs][0-9]{1,2}( (plus|ultra))?",
+                        r"galaxy note[ ]?[0-9]{1,2}( (plus|ultra))?"
+                        r'[\s][a-z][0-9]{1,2}[a-z]?[\s]((plus)|\+)?',
+                        r'[\s]note[\s]?[0-9]{1,2}\+?[\s]?(ultra)?',
+                        r'prime[ ]?((plus)|\+)?',]:
+                match = re.search(pattern, cleanedTitle)
+                if match:
+                    model = match.group()
+                    break
+            if (memType == NO_MEMTYPE):
+                memType = 'sim'
+        elif 'tv' in cleanedTitle:
+            size_model = re.search(r'[0-9]{2}[- ]?inch', cleanedTitle)
+            if size_model:
+                capacity = size_model.group()[:2]
+            mem_model = re.search(r'(hd)|(qled)|(uhd)', cleanedTitle)
+            if mem_model:
+                memType = mem_model.group()
+            match = re.search(r'[a-z]{1,2}[0-9]{4}', cleanedTitle)
+            if match:
+                model = match.group()
+        else:
+            if memType == 'ssd':
+                match = re.search(r'[\s]t[0-9][\s]', cleanedTitle)
+                if match:
+                    model = match.group().strip()
+            else:
+                match = re.search(r'(pro)|(evo)', cleanedTitle)
+                if match:
+                    model = match.group()
+                    match = re.search(r'(\+)|(plus)', cleanedTitle)
+                    if match:
+                        model = model + match.group().replace('plus', '+')
+                    if model == 'evo+' and memType == '0':
+                        memType = 'microsd'
+    elif brand == "pny":
+        type_model = re.search(r'att.*?[3-4]', cleanedTitle)
+        if type_model is not None:
+            model = type_model.group().replace(' ', '').replace('-', '')
+            model = 'att' + \
+                list(filter(lambda ch: ch in '0123456789', model))[0]
+            if memType == '0':
+                memType = 'usb' 
     elif brand == 'toshiba':
         match = re.search(r'[mnu][0-9]{3}', cleanedTitle)
         if match:
@@ -323,8 +406,8 @@ def assignToCluster(
         
         instance['solved'] = True
         smartClusters[pattern].append(frozendict(instance))
-    elif instance['brand'] == 'sandisk_':
-        if instance['memType'] != NO_MEMTYPE and instance['capacity'] != NO_CAPACITY:
+    elif instance['brand'] == 'sandisk':
+        if instance['memType'] != NO_MEMTYPE and instance['capacity'] != NO_CAPACITY and instance['model'] != NO_MODEL:
             pattern = " || ".join((instance['brand'], instance['capacity'], instance['memType'], instance['model']))
         else:
             instance['solved'] = False
@@ -344,7 +427,9 @@ def assignToCluster(
         instance['solved'] = True
         smartClusters[pattern].append(frozendict(instance))
     elif instance['brand'] == 'intenso':
-        if instance['capacity'] != NO_CAPACITY and instance['model'] != NO_MODEL:
+        if instance['model'] == "premium":
+            pattern = " || ".join((instance['brand'], instance['capacity'], instance['model']))
+        elif instance['capacity'] != NO_CAPACITY and instance['model'] != NO_MODEL:
             pattern = " || ".join((instance['brand'], instance['capacity'], instance['model']))
         else:
             instance['solved'] = False
@@ -356,6 +441,16 @@ def assignToCluster(
     elif instance['brand'] == 'kingston':
         if instance['memType'] != NO_MEMTYPE and instance['capacity'] != NO_CAPACITY:
             pattern = " || ".join((instance['brand'], instance['capacity'], instance['memType']))
+        else:
+            instance['solved'] = False
+            sameSequenceClusters[sortedTitle].append(frozendict(instance))
+            return
+        
+        instance['solved'] = True
+        smartClusters[pattern].append(frozendict(instance))
+    elif instance['brand'] == 'pny':
+        if instance['memType'] != NO_MEMTYPE and instance['capacity'] != NO_CAPACITY:
+            pattern = " || ".join((instance['brand'], instance['capacity']))
         else:
             instance['solved'] = False
             sameSequenceClusters[sortedTitle].append(frozendict(instance))
@@ -385,6 +480,22 @@ def assignToCluster(
         
         instance['solved'] = True
         smartClusters[pattern].append(frozendict(instance))
+    elif instance["brand"] == 'samsung':
+        if instance["memType"] in ('microsd', 'ssd', 'sd',
+                            'usb') and instance["capacity"] != NO_CAPACITY and instance["model"] != NO_MODEL:
+            pattern = " || ".join((instance["brand"], instance["capacity"], instance["memType"],instance["model"])) #+model
+            instance['solved'] = True
+            instance = frozendict(instance)
+            smartClusters[pattern].append(instance)
+        elif instance["memType"] != NO_MEMTYPE and instance["capacity"] != NO_CAPACITY and instance["model"] != NO_MODEL: #type != '0' and :
+            pattern = " || ".join((instance["brand"], instance["capacity"], instance["memType"],instance["model"])) #+model
+            instance['solved'] = True
+            instance = frozendict(instance)
+            smartClusters[pattern].append(instance)
+        else:
+            instance['solved'] = False
+            instance = frozendict(instance)
+            sameSequenceClusters[sortedTitle].append(instance)
     else:
         # TODO: Replace with brand-specific logic
         #instance['solved'] = False
@@ -396,6 +507,7 @@ def assignToCluster(
         else:
             instance['solved'] = False
             sameSequenceClusters[sortedTitle].append(frozendict(instance))
+    
 
 def x2_blocking(csv_reader: csv.DictReader, id_col: str, title_col: str, brand_col: str, save_scores=False) -> List[Tuple[int, int]]:
     """

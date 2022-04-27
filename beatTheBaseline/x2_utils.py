@@ -5,6 +5,10 @@ import string
 
 # Might be needed
 # from utils import NO_BRAND, NO_MODEL, NO_MEMTYPE, NO_CAPACITY, NO_COLOR
+NO_BRAND = 'no_brand'
+NO_MODEL = 'no_model'
+NO_MEMTYPE = 'no_memtype'
+NO_CAPACITY = 'no_capacity'
 
 class X2Instance(TypedDict):
     id: int
@@ -115,12 +119,14 @@ class X2Utils:
             "ext": [r'ext(reme)'],
             r'glide': None,
             r'blade': None,
-            r'fit': None
+            r'fit': None,
+            "traveler": [r'traveler', r'class', r'x-series'],
         },
         "intenso": {
             r'[0-9]{7}': None,
             r'(high\s)?[a-z]+\s(?=line)': None,
-            r"basic": None,
+            r"basic": "basic line",
+            r"line": "basic line",
             r"rainbow": None,
             r"high speed": None,
             r"speed": None,
@@ -149,12 +155,24 @@ class X2Utils:
         },        
         "samsung": {
             # patterns missing
-            r"galaxy [ajs][0-9]{1,2}( (plus|ultra))?": None,
-            r"galaxy note[ ]?[0-9]{1,2}( (plus|ultra))?": None,
+            "samsung_sim":[r"galaxy [ajs][0-9]{1,2}( (plus|ultra))?",
+                        r"galaxy note[ ]?[0-9]{1,2}( (plus|ultra))?"
+                        r'[\s][a-z][0-9]{1,2}[a-z]?[\s]((plus)|\+)?',
+                        r'[\s]note[\s]?[0-9]{1,2}\+?[\s]?(ultra)?',
+                        r'prime[ ]?((plus)|\+)?',
+            ],
+            "samsung_tv": [r'[0-9]{2}[- ]?inch', 
+                    r'(hd)|(qled)|(uhd)', 
+                    r'[a-z]{1,2}[0-9]{4}'
+            ],
+            "samsung_ssd": [r'[\s]t[0-9][\s]' ],
+            "samsung_micro": [r'(pro)|(evo)',
+                            r'(\+)|(plus)',
+                            r'blade']
         },
         "pny": {
-            "att 3": [r'att.*?[3]'],
-            "att 4": [r'att.*?[4]']
+            "att 3": [r'att.*?[ ]?[3]'],
+            "att 4": [r'attach[eé\?][ ]?[4]']
         },
         #r"lsd[\w]+": [],
         #r"thn[\w]+": [],
@@ -284,6 +302,7 @@ class X2Utils:
     wordPattern = r'(?=\D)[\w]+'
     WORD_WEIGHT = 0.2
     BRAND_WEIGHT = 0.6
+    SANDISK_WEIGHT = -0.5
     CAPACITY_WEIGHT = 0.4
     ALPHANUMERIC_WEIGHT = 0.75
     ALPHANUMERIC_BONUS_WEIGHT = 1.25
@@ -291,6 +310,7 @@ class X2Utils:
 
     REJECT_SCORE = -1
     SOLVED_PAIR_SCORE = float(10.1)
+
 
     @staticmethod
     def jaccardSimilarity(a: X2Instance, b: X2Instance) -> float:
@@ -307,7 +327,10 @@ class X2Utils:
 
         #if a["solved"] and b["solved"]:
         #    return X2Utils.SOLVED_PAIR_SCORE
-
+        if a['brand'] == 'sandisk':
+            if a["capacity"] == NO_CAPACITY or a["memType"] == NO_MEMTYPE or a["model"] == NO_MODEL:
+                return X2Utils.SANDISK_WEIGHT
+            
         a_words = set(a["title"].split())
         b_words = set(b["title"].split())
         if len(a_words) == 0 or len(b_words) == 0:

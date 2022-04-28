@@ -143,26 +143,13 @@ REJECTED_PAIR_SCORE = float(-10.1)
 
 def getSimilarityScore(a: X1Instance, b: X1Instance) -> float:
 
-    if a['cpu'] == b['cpu'] and a['model'] == b['model'] and a['model'] != NO_MODEL:
-        if a['brand'] == 'lenovo' and len(a['model']) >= 8:
-            if a['cpu'] != NO_CPU and len(a['cpu']) >= 5:
-                return SOLVED_PAIR_SCORE
-        elif a['brand'] == 'hp' and len(a['model']) >= 9:
-            if a['cpu'] != NO_CPU and len(a['cpu']) >= 5:
-                return SOLVED_PAIR_SCORE
-        elif a['brand'] == 'acer' and len(a['model']) >= 6:
-            if a['cpu'] != NO_CPU and len(a['cpu']) >= 5:
-                return SOLVED_PAIR_SCORE
-        
-        # Both have different RAM or different CPU, reject.
-    #     return REJECTED_PAIR_SCORE
-    # elif a['brand'] == 'acer' and a['model'] == b['model'] and len(a['model']) >= 6:
-    #     if a['cpu'] != NO_CPU and b['cpu'] != NO_CPU and a['cpu'] != b['cpu']:
-    #         return REJECTED_PAIR_SCORE
-    #     elif a['ram'] != NO_RAM and b['ram'] != NO_RAM and a['ram'] != b['ram']:
-    #         return REJECTED_PAIR_SCORE
-    #     if a['cpu'] == b['cpu'] or a['ram'] == b['ram']:
-    #         return SOLVED_PAIR_SCORE
+    if a['cpu'] == b['cpu'] and a['cpu'] != NO_CPU and a['model'] == b['model'] and a['model'] != NO_MODEL:
+        if a['brand'] == 'lenovo' and len(a['model']) >= 8 and len(a['cpu']) >= 5:
+            return SOLVED_PAIR_SCORE
+        elif a['brand'] == 'hp' and len(a['model']) >= 9 and len(a['cpu']) >= 5:
+            return SOLVED_PAIR_SCORE
+        elif a['brand'] == 'acer' and len(a['model']) >= 6 and len(a['cpu']) >= 5:
+            return SOLVED_PAIR_SCORE
 
     a_words = set(a['title'].split())
     b_words = set(b['title'].split())
@@ -189,15 +176,6 @@ def getSimilarityScore(a: X1Instance, b: X1Instance) -> float:
             weighted_sum += ALPHANUMERIC_WEIGHT
 
     return weighted_sum/max(len(a_words), len(b_words))
-
-def lenovo_blocking(title: str) -> str:
-    lenovoNumber = ''
-    match = re.search(r'[0-9]{4}[0-9a-z]{3}(?![0-9a-z])', title)
-    if not match:
-        match = re.search(r'[0-9]{4}(?![0-9a-z])')
-    if match:
-        lenovoNumber = match.group().replace('-', '')[:4]
-    pass
 
 def acer_preprocessing(rawTitle: str, model: str) -> Tuple[str, str]:
     newModel = model
@@ -230,8 +208,6 @@ def lenovo_processing(title: str, model: str) -> Tuple[str, str]:
     newModel = re.sub(r'3435[a-z0-9]{3}', r'3435', newModel)
     newModel = re.sub(r'tablet 3435', r'2320', newModel)
     newModel = re.sub(r'x230[t]? 3435', r'x230 2320', newModel)
-    #newModel = model.replace('tablet 3435', '2320')\
-    #                .replace('x230t 3435', 'x230 2320')
 
     newModel = re.sub(r'(4291|4287)', r'4290', newModel)
     newModel = re.sub(r'2339', r'2338', newModel)
@@ -277,12 +253,7 @@ def x1_blocking(csv_reader, id_col: str, title_col: str, save_scores=False) -> L
             if match:
                 brands.append(match.group())
         brand = ' & '.join(brands) if len(brands) else NO_BRAND
-        
-        #model = modelPattern.search(cleanedTitle)
-        #if not model:
-        #    model = NO_MODEL
-        #else:
-        #    model = model.group()
+
         model = NO_MODEL
         for m in models:
             match = re.search(m, cleanedTitle)
@@ -305,7 +276,6 @@ def x1_blocking(csv_reader, id_col: str, title_col: str, save_scores=False) -> L
                 cpu = match.group().strip()
                 break
 
-        #instance = (instanceId, cleanedTitle)
         instance: X1Instance = frozendict({
             'id': instanceId,
             'title': cleanedTitle,
@@ -319,12 +289,10 @@ def x1_blocking(csv_reader, id_col: str, title_col: str, save_scores=False) -> L
             pattern = " || ".join((brand, model, cpu, ram))
             modelPatterns[pattern].append(instance)
         elif brand == 'hp' and model != NO_MODEL and len(model) >=9:
-            #pattern = " || ".join((brand, model, cpu, ram))
             pattern = " || ".join((brand, model))
             modelPatterns[pattern].append(instance)
         elif brand == 'acer' and model != NO_MODEL and len(model) >= 6:
             pattern = " || ".join((brand, model))
-            #pattern = " || ".join((brand, model, cpu, ram))
             modelPatterns[pattern].append(instance)
         elif model != NO_MODEL and cpu != NO_CPU:
             pattern = " || ".join((brand, model, cpu, ram))
@@ -360,7 +328,6 @@ def x1_blocking(csv_reader, id_col: str, title_col: str, save_scores=False) -> L
     jaccard_similarities = []
     candidate_pairs_real_ids: List[Tuple[int, int]] = []
     for pair in candidate_pairs:
-        #(id1, name1), (id2, name2) = pair
         instance1, instance2 = pair
 
         if instance1['id'] < instance2['id']: # NOTE: This is to make sure in the final output.csv, for a pair id1 and id2 (assume id1<id2), we only include (id1,id2) but not (id2, id1)

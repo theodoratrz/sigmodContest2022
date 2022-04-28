@@ -384,7 +384,7 @@ def findPairs(candidate_pairs: Iterable[Tuple[X2Instance, X2Instance]], save_sco
         #score = getSimilarityScore(instance1, instance2)
         #if score > REJECT_SCORE:
         #    jaccard_similarities.append(score)
-        #jaccard_similarities.append(score)
+        jaccard_similarities.append(score)
 
     # sort candidate pairs by similarity score.
     # In case we have more than 2000000 pairs,
@@ -570,11 +570,11 @@ def createInstanceInfo(instanceId: int, rawTitle: str, cleanedTitle: str, sorted
         if model in intensoIdToModel.keys():
             model = intensoIdToModel[model]
         if model == NO_MODEL:
-            match = re.search(r"basic",cleanedTitle)
+            match = re.search(r"basic [l]?[i]?[n]?[e]?",cleanedTitle)
             if match:
                 model = "basic"
             else:
-                match = re.search(r"rainbow", cleanedTitle)
+                match = re.search(r"rainbow [l]?[i]?[n]?[e]?", cleanedTitle)
                 if match:
                     model = "rainbow"
                 else:
@@ -636,7 +636,7 @@ def createInstanceInfo(instanceId: int, rawTitle: str, cleanedTitle: str, sorted
                     match = re.search(r'(\+)|(plus)', cleanedTitle)
                     if match:
                         model = model + match.group().replace('plus', '+')
-                    if model == 'evo+' and memType == '0':
+                    if model == 'evo+' and memType == NO_MEMTYPE:
                         memType = 'microsd'
     elif brand == "pny":
         type_model = re.search(r'att.*?[3-4]', cleanedTitle)
@@ -644,7 +644,7 @@ def createInstanceInfo(instanceId: int, rawTitle: str, cleanedTitle: str, sorted
             model = type_model.group().replace(' ', '').replace('-', '')
             model = 'att' + \
                 list(filter(lambda ch: ch in '0123456789', model))[0]
-            if memType == '0':
+            if memType == NO_MEMTYPE:
                 memType = 'usb' 
     elif brand == 'toshiba':
         match = re.search(r'[mnu][0-9]{3}', cleanedTitle)
@@ -743,7 +743,7 @@ def assignToCluster(
     smartClusters: Dict[str, List[X2Instance]]):
 
     if instance['brand'] == 'sony':
-        if (instance['memType'] in ('ssd', 'microsd') or instance['capacity'] == '1tb') and instance['capacity'] != NO_CAPACITY:
+        if (instance['memType'] in ('ssd', 'microsd', 'sd') or instance['capacity'] == '1tb') and instance['capacity'] != NO_CAPACITY:
             pattern = " || ".join((instance['brand'], instance['capacity'], instance['memType']))
         elif instance['memType'] != NO_MEMTYPE and instance['capacity'] != NO_CAPACITY and instance['model'] != NO_MODEL:
             pattern = " || ".join((instance['brand'], instance['capacity'], instance['memType'], instance['model']))
@@ -754,12 +754,12 @@ def assignToCluster(
         smartClusters[pattern].append(frozendict(instance))
 
     elif instance['brand'] == 'sandisk':
-        if instance['code'] != NO_CODE:
-            instance['solved'] = True
-            pattern = " || ".join((instance['brand'], instance['code']))
-            smartClusters[pattern].append(frozendict(instance))
-        if instance['memType'] != NO_MEMTYPE and instance['capacity'] != NO_CAPACITY and instance['model'] != NO_MODEL:
-            pattern = " || ".join((instance['brand'], instance['capacity'], instance['memType'], instance['model']))
+        #if instance['code'] != NO_CODE:
+         #   instance['solved'] = True
+         #   pattern = " || ".join((instance['brand'], instance['code']))
+         #   smartClusters[pattern].append(frozendict(instance))
+        if instance['memType'] != NO_MEMTYPE and instance['capacity'] != NO_CAPACITY and (instance['model'] != NO_MODEL or instance['code'] != NO_CODE):
+            pattern = " || ".join((instance['brand'], instance['capacity'], instance['memType'], instance['model'], instance['code']))
         else:
             instance['solved'] = False
             sameSequenceClusters[sortedTitle].append(frozendict(instance))
@@ -830,7 +830,7 @@ def assignToCluster(
                             'usb') and instance["capacity"] != NO_CAPACITY and instance["model"] != NO_MODEL:
             pattern = " || ".join((instance["brand"], instance["capacity"], instance["memType"],instance["model"])) #+model
         elif instance["memType"] != NO_MEMTYPE and instance["capacity"] != NO_CAPACITY and instance["model"] != NO_MODEL: #type != '0' and :
-            pattern = " || ".join((instance["brand"], instance["capacity"], instance["memType"],instance["model"])) #+model
+            pattern = " || ".join((instance["brand"], instance["capacity"], instance["memType"],instance["model"], instance['color'])) #+model
         else:
             sameSequenceClusters[sortedTitle].append(frozendict(instance))
             return

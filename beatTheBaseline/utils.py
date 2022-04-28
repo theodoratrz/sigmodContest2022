@@ -1,10 +1,11 @@
-SUBMISSION_MODE = False
+SUBMISSION_MODE = True
 TARGET_DATASET = '2'
 IGNORE_DATASET = '1'
 
 
 NO_BRAND = 'no_brand'
 NO_MODEL = 'no_model'
+NO_CODE = 'no_code'
 NO_TYPE = 'no_type'
 NO_CPU = 'no_cpu'
 NO_RAM = 'no_ram'

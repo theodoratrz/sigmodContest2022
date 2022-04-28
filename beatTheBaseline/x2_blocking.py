@@ -7,7 +7,7 @@ import re
 import csv
 import string
 
-from utils import NO_BRAND, NO_MODEL, NO_MEMTYPE, NO_TYPE, NO_CAPACITY, NO_COLOR, jaccardSimilarity
+from utils import NO_BRAND, NO_MODEL, NO_CODE, NO_MEMTYPE, NO_TYPE, NO_CAPACITY, NO_COLOR, jaccardSimilarity
 
 
 class X2Instance(TypedDict):
@@ -16,6 +16,7 @@ class X2Instance(TypedDict):
     brand: str
     memType: str
     model: str
+    code: str
     type: str
     capacity: str
     color: str
@@ -299,8 +300,10 @@ def getSimilarityScore(a: X2Instance, b: X2Instance) -> float:
 
     #if a["solved"] and b["solved"]:
     #    return SOLVED_PAIR_SCORE
-    if a['brand'] == 'sandisk':
-        if a["capacity"] == NO_CAPACITY or a["memType"] == NO_MEMTYPE or a["model"] == NO_MODEL:
+    if a['brand'] == 'sandisk' and a['brand'] == b['brand']:
+        if a['code'] == b['code'] and a['code'] != NO_CODE:
+            return SOLVED_PAIR_SCORE
+        if a["capacity"] == NO_CAPACITY or a["memType"] == NO_MEMTYPE or b["capacity"] == NO_CAPACITY or b["memType"] == NO_MEMTYPE:
             return SANDISK_WEIGHT
         
     a_words = set(a["title"].split())
@@ -394,7 +397,7 @@ def findPairs(candidate_pairs: Iterable[Tuple[X2Instance, X2Instance]], save_sco
     return candidate_pairs_real_ids
 
 # TODO: use brand-specific logic
-def createInstanceInfo(instanceId: int, cleanedTitle: str, sortedTitle: str, brand: str, brands: List[str]) -> X2Instance:
+def createInstanceInfo(instanceId: int, rawTitle: str, cleanedTitle: str, sortedTitle: str, brand: str, brands: List[str]) -> X2Instance:
     # Try to classify a mem type
     memType = NO_MEMTYPE
     for mem in memTypePatterns:
@@ -429,6 +432,7 @@ def createInstanceInfo(instanceId: int, cleanedTitle: str, sortedTitle: str, bra
         capacity = capacity.group().replace('o','b')
 
     model = NO_MODEL
+    itemCode = NO_CODE
     brandType = NO_TYPE
 
     # Sony logic
@@ -472,6 +476,21 @@ def createInstanceInfo(instanceId: int, cleanedTitle: str, sortedTitle: str, bra
                     '')
                 model = model.replace('series', '').replace('serie', '')
     elif brand == 'sandisk':
+
+        match = re.search(r'sdcz[0-9]{2,3}[-–]?(?P<capacity>[0-9]{1,3}[ ]?g)[-–]?[a-z][0-9]{2}', cleanedTitle)
+        if not match:
+            match = re.search(r'sd[a-z]{3,5}[-–]?(?P<capacity>[0-9]{3,4}[g]?)[-–]?([a-z0-9]{3,5})?', cleanedTitle)
+            if not match:
+                match = re.search(r'sd[a-z]{2}[0-9]+/(?P<capacity>[0-9]{1,3}[ ]?g[b]?)[a-z]', rawTitle)
+                if not match:
+                    match = re.search(r'lsd[a-z]*(?P<capacity>[0-9]{1,3}(g|b|gb)?)[a-z0-9]{8,9}', cleanedTitle)
+                    pass
+
+        if match:
+            itemCode = re.sub(r'[ -]', '', match.group())
+            if capacity == NO_CAPACITY:
+                capacity = re.match(r'\d+', match.group('capacity')).group()
+
         match = re.search(r'ext.*(\s)?((plus)|(pro)|\+)', cleanedTitle)
         if match:
             model = 'ext+'
@@ -710,6 +729,7 @@ def createInstanceInfo(instanceId: int, cleanedTitle: str, sortedTitle: str, bra
         "brand": brand,
         "memType": memType,
         "model": model,
+        "code": itemCode,
         "type": brandType,
         "capacity": capacity,
         "color": color,
@@ -734,9 +754,14 @@ def assignToCluster(
         smartClusters[pattern].append(frozendict(instance))
 
     elif instance['brand'] == 'sandisk':
+        if instance['code'] != NO_CODE:
+            instance['solved'] = True
+            pattern = " || ".join((instance['brand'], instance['code']))
+            smartClusters[pattern].append(frozendict(instance))
         if instance['memType'] != NO_MEMTYPE and instance['capacity'] != NO_CAPACITY and instance['model'] != NO_MODEL:
             pattern = " || ".join((instance['brand'], instance['capacity'], instance['memType'], instance['model']))
         else:
+            instance['solved'] = False
             sameSequenceClusters[sortedTitle].append(frozendict(instance))
             return        
         instance['solved'] = True
@@ -852,7 +877,7 @@ def x2_blocking(csv_reader: csv.DictReader, id_col: str, title_col: str, brand_c
         if brand == NO_BRAND:
             continue
 
-        instance = createInstanceInfo(instanceId, cleanedTitle, sortedTitle, brand, brands)
+        instance = createInstanceInfo(instanceId, rawTitle, cleanedTitle, sortedTitle, brand, brands)
 
         assignToCluster(instance, sortedTitle, sameSequenceClusters, smartClusters)
 

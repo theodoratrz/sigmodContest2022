@@ -301,8 +301,6 @@ def getSimilarityScore(a: X2Instance, b: X2Instance) -> float:
     #if a["solved"] and b["solved"]:
     #    return SOLVED_PAIR_SCORE
     if a['brand'] == 'sandisk' and a['brand'] == b['brand']:
-        if a['code'] == b['code'] and a['code'] != NO_CODE:
-            return SOLVED_PAIR_SCORE
         if a["capacity"] == NO_CAPACITY or a["memType"] == NO_MEMTYPE or b["capacity"] == NO_CAPACITY or b["memType"] == NO_MEMTYPE:
             return SANDISK_WEIGHT
         
@@ -566,9 +564,11 @@ def createInstanceInfo(instanceId: int, rawTitle: str, cleanedTitle: str, sorted
             #if match:
             #    model = match.group()
             #    break
-
-        if model in intensoIdToModel.keys():
-            model = intensoIdToModel[model]
+        match = re.search(r"[0-9]{7}", cleanedTitle)
+        if match:
+            model_type = match.group()
+            if model_type in intensoIdToModel.keys():
+                model = intensoIdToModel[model_type]
         if model == NO_MODEL:
             match = re.search(r"basic [l]?[i]?[n]?[e]?",cleanedTitle)
             if match:
@@ -582,7 +582,17 @@ def createInstanceInfo(instanceId: int, rawTitle: str, cleanedTitle: str, sorted
                         match = re.search(p, cleanedTitle)
                         if match:
                             model = "premium"
-                            break         
+                            break
+                        else:
+                            match = re.search(r"speed [l]?[i]?[n]?[e]?", cleanedTitle)
+                            if match:
+                                model = "speed"
+                                break
+                            else:
+                                match = re.search(r"alu", cleanedTitle)
+                                if match:
+                                    model = "alu"
+                                    break
     elif brand == 'kingston':
         if memType == NO_MEMTYPE:
             if 'savage' in cleanedTitle or 'hx' in cleanedTitle or 'hyperx' in cleanedTitle:
@@ -758,8 +768,8 @@ def assignToCluster(
          #   instance['solved'] = True
          #   pattern = " || ".join((instance['brand'], instance['code']))
          #   smartClusters[pattern].append(frozendict(instance))
-        if instance['memType'] != NO_MEMTYPE and instance['capacity'] != NO_CAPACITY and (instance['model'] != NO_MODEL or instance['code'] != NO_CODE):
-            pattern = " || ".join((instance['brand'], instance['capacity'], instance['memType'], instance['model'], instance['code']))
+        if instance['memType'] != NO_MEMTYPE and instance['capacity'] != NO_CAPACITY and len(instance['title']) < 70:
+            pattern = " || ".join((instance['brand'], instance['capacity'], instance['memType'], instance['model']))
         else:
             instance['solved'] = False
             sameSequenceClusters[sortedTitle].append(frozendict(instance))
@@ -777,9 +787,7 @@ def assignToCluster(
         smartClusters[pattern].append(frozendict(instance))
 
     elif instance['brand'] == 'intenso':
-        if instance['model'] == "premium":
-            pattern = " || ".join((instance['brand'], instance['capacity'], instance['model']))
-        elif instance['capacity'] != NO_CAPACITY and instance['model'] != NO_MODEL:
+        if instance['capacity'] != NO_CAPACITY and instance['model'] != NO_MODEL:
             pattern = " || ".join((instance['brand'], instance['capacity'], instance['model']))
         else:
             sameSequenceClusters[sortedTitle].append(frozendict(instance))
@@ -887,14 +895,20 @@ def x2_blocking(csv_reader: csv.DictReader, id_col: str, title_col: str, brand_c
         instances = sameSequenceClusters[pattern]
         for i in range(len(instances)):
             for j in range(i + 1, len(instances)):
+                #if instances[i]['brand'] == 'pny' and instances[i]['title'] == instances[j]['title']:
+                   #     continue
                 candidate_pairs_1.append((instances[i], instances[j])) #
     # add pairs that share the same pattern to candidate set
     candidate_pairs_2 = []
     for pattern in smartClusters:
         instances = smartClusters[pattern]
-        if len(instances)<2000: #skip patterns that are too common
+        if len(instances)<2800: #skip patterns that are too common
             for i in range(len(instances)):
                 for j in range(i + 1, len(instances)):
+                    #if instances[i]['model'] == 'premium' and instances[i]['title'] == instances[j]['title']:
+                     #   continue
+                    #if instances[i]['brand'] == 'pny' and instances[i]['title'] == instances[j]['title']:
+                     #   continue
                     candidate_pairs_2.append((instances[i], instances[j]))
 
     # remove duplicate pairs and take union

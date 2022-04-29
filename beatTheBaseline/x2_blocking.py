@@ -298,11 +298,33 @@ SOLVED_PAIR_SCORE = float(10.1)
 
 def getSimilarityScore(a: X2Instance, b: X2Instance) -> float:
 
-    #if a["solved"] and b["solved"]:
-    #    return SOLVED_PAIR_SCORE
-    if a['brand'] == 'sandisk' and a['brand'] == b['brand']:
-        if a["capacity"] == NO_CAPACITY or a["memType"] == NO_MEMTYPE or b["capacity"] == NO_CAPACITY or b["memType"] == NO_MEMTYPE:
-            return SANDISK_WEIGHT
+    if a['brand'] == b['brand']:
+        if a['brand'] == 'toshiba' and (re.search(r'thn[- ]?[a-z]{1}[0-9]{3,4}[a-z]{1}[0-9]{4}[a-z]{1}[0-9]?', a['title']) or re.search(r'thn[- ]?[a-z]{1}[0-9]{3,4}[a-z]{1}[0-9]{4}[a-z]{1}[0-9]?', b['title']) ):
+                return SOLVED_PAIR_SCORE
+        elif a['brand'] == 'toshiba' and (re.search(r'exceria pro[ ]?[a-z]{1}[0-9]{3}', a['title']) or re.search(r'exceria pro[ ]?[a-z]{1}[0-9]{3}', b['title']) ):
+                return SOLVED_PAIR_SCORE
+        elif a['brand'] == 'kingston' and a['model'] != NO_MODEL and b['model'] != NO_MODEL and (re.search(r'(dt[a-z]?[0-9]|data[ ]?t?travel?ler)',a['title']) or re.search(r'(dt[a-z]?[0-9]|data[ ]?t?travel?ler)', b['title'])):
+                return SOLVED_PAIR_SCORE
+        elif a['brand'] == 'lexar' and (re.search(r"lexar [a-z]{1}[0-9]{2}[ ][0-9]{2,3}[ ]?[a-z]{2}?", a['title']) or re.search(r"lexar [a-z]{1}[0-9]{2}[ ][0-9]{2,3}[ ]?[a-z]{2}?", b['title'])):
+                return SOLVED_PAIR_SCORE
+        elif a['brand'] == 'lexar' and (re.search(r"lexar jumpdrive [a-z]{1}[0-9]{2}[ ][0-9]{2,3}[ ]?[a-z]{2}?", a['title']) or re.search(r"lexar jumpdrive[a-z]{1}[0-9]{2}[ ][0-9]{2,3}[ ]?[a-z]{2}?", b['title'])):
+                return SOLVED_PAIR_SCORE
+        elif a['brand'] == 'sony' and (re.search(r"sony usm[0-9]{2}[a-z]{2,3}[0-9]?", a['title']) or re.search(r"sony usm[0-9]{2}[a-z]{2,3}[0-9]?", a['title'])):
+            return SOLVED_PAIR_SCORE
+        elif a['brand'] == 'intenso' and (re.search(r"(basic|rainbow|premium) line [0-9]{1,3}[a-z]{2}", a['title']) or re.search(r"(basic|rainbow|premium) line [0-9]{1,3}[a-z]{2}", b['title'])):
+            return SOLVED_PAIR_SCORE
+        elif a['brand'] == 'samsung' and (re.search(r"samsung galaxy", a['title']) or re.search(r"samsung galaxy", b['title'])):
+            return SOLVED_PAIR_SCORE
+        elif a['brand'] == 'pny' and (re.search(r"pny att.*?[4]", a['title']) or re.search(r"pny att.*?[4]", b['title'])):
+            return SOLVED_PAIR_SCORE
+        elif a['brand'] == 'sandisk' and (re.search(r"extreme pro", a['title']) or re.search(r"extreme pro", b['title'])):
+            return SOLVED_PAIR_SCORE
+        elif a['brand'] == 'sandisk' and (re.search(r"sandisk ultra", a['title']) or re.search(r"sandisk ultra", b['title'])):
+            return SOLVED_PAIR_SCORE
+        elif a['brand'] == 'sandisk' and (re.search(r"sandisk extreme", a['title']) or re.search(r"sandisk extreme", b['title'])):
+            return SOLVED_PAIR_SCORE
+        elif a['brand'] == 'sandisk' and (re.search(r"sandisk cruzer glide", a['title']) or re.search(r"sandisk cruzer glide", b['title'])):
+            return SOLVED_PAIR_SCORE
         
     a_words = set(a["title"].split())
     b_words = set(b["title"].split())
@@ -377,12 +399,12 @@ def findPairs(candidate_pairs: Iterable[Tuple[X2Instance, X2Instance]], save_sco
         else:
             candidate_pairs_real_ids.append((instance2["id"], instance1["id"]))
 
-        score = jaccardSimilarity(instance1['title'], instance2['title'])
+        #score = jaccardSimilarity(instance1['title'], instance2['title'])
         
-        #score = getSimilarityScore(instance1, instance2)
-        #if score > REJECT_SCORE:
-        #    jaccard_similarities.append(score)
-        jaccard_similarities.append(score)
+        score = getSimilarityScore(instance1, instance2)
+        if score > REJECT_SCORE:
+            jaccard_similarities.append(score)
+        #jaccard_similarities.append(score)
 
     # sort candidate pairs by similarity score.
     # In case we have more than 2000000 pairs,
@@ -700,6 +722,11 @@ def createInstanceInfo(instanceId: int, rawTitle: str, cleanedTitle: str, sorted
                         brandType = 'xpro'
                     elif speed == '90' and brandType == 'x' and model == NO_MODEL:
                         model = 'n302'
+        if model == NO_MODEL:
+           match = re.search(r'exceria pro', cleanedTitle)
+           if match:
+               model = "exceria"
+
     else:
         for b in brands:
             if model == NO_MODEL:
@@ -889,26 +916,22 @@ def x2_blocking(csv_reader: csv.DictReader, id_col: str, title_col: str, brand_c
 
         assignToCluster(instance, sortedTitle, sameSequenceClusters, smartClusters)
 
+        
+
     # add id pairs that share the same pattern to candidate set
     candidate_pairs_1 = []
     for pattern in sameSequenceClusters:
         instances = sameSequenceClusters[pattern]
         for i in range(len(instances)):
             for j in range(i + 1, len(instances)):
-                #if instances[i]['brand'] == 'pny' and instances[i]['title'] == instances[j]['title']:
-                   #     continue
                 candidate_pairs_1.append((instances[i], instances[j])) #
     # add pairs that share the same pattern to candidate set
     candidate_pairs_2 = []
     for pattern in smartClusters:
         instances = smartClusters[pattern]
-        if len(instances)<2800: #skip patterns that are too common
+        if len(instances)<2000: #skip patterns that are too common
             for i in range(len(instances)):
                 for j in range(i + 1, len(instances)):
-                    #if instances[i]['model'] == 'premium' and instances[i]['title'] == instances[j]['title']:
-                     #   continue
-                    #if instances[i]['brand'] == 'pny' and instances[i]['title'] == instances[j]['title']:
-                     #   continue
                     candidate_pairs_2.append((instances[i], instances[j]))
 
     # remove duplicate pairs and take union

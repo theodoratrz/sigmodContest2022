@@ -1,3 +1,6 @@
+# For debugging
+from utils import TARGET_ID_1, TARGET_ID_2
+
 # *Not standard*
 from frozendict import frozendict
 
@@ -77,9 +80,9 @@ memTypePatterns = {
     "sim": [r'lte'],
     "ssd": [r'ssd'],
     "xqd": [r'xqd'],
-    "microsd": [r'micro[- ]?sd[hx]?c?', ],
-    "sd": [r'sd[hx]c', r'(secure.*?digital|digital.*?secure)', r'sd(?!cz)', r'exceria'],
-    "usb": [r'ljd', r'usb', r'transmemory', r'hyperx', r'savage', r'cruzer', r'glide', r'fit', r'flash', r'hx'],
+    "microsd": [r'micro[- ]?sd[hx]?c?'],#, r'exceria pro'],
+    "sd": [r'sd[hx]c', r'(secure.*?digital|digital.*?secure)', r'sd(?!cz)'],
+    "usb": [r'ljd', r'usb', r'transmemory', r'hyperx', r'savage', r'cruzer', r'glide', r'fit', r'hx'],
 }
 memTypeExtra = {
     "microsd": [r'adapter', r'adaptateur', r'adaptor'],
@@ -652,15 +655,18 @@ def createInstanceInfo(instanceId: int, rawTitle: str, cleanedTitle: str, sorted
             if memType == '0':
                 memType = 'usb' 
     elif brand == 'toshiba':
-        match = re.search(r'[mnu][0-9]{3}', cleanedTitle)
+        match = re.search(r'(?P<model>[mnu][0-9]{3})(.*(?P<capacity>(008|016|064|128|256|512)))?', cleanedTitle)
         if match:
-            model = match.group()
+            model = match.group('model')
             if memType == NO_MEMTYPE and len(model) > 0:
                 c = model[0]
                 for char, mem in (('u', 'usb'), ('n', 'sd'), ('m', 'microsd')):
                     if c == char:
                         memType = mem
                         break
+            if capacity == NO_CAPACITY and match.group('capacity'):
+                capacity = match.group('capacity').replace('0', '') + 'gb'
+        
         if memType == 'usb' and model == NO_MODEL and re.search(r'(ex[\s-]?ii|osus)', cleanedTitle):
             model = 'ex'
         if memType == NO_MEMTYPE and ('transmemory' in cleanedTitle):
@@ -695,6 +701,13 @@ def createInstanceInfo(instanceId: int, rawTitle: str, cleanedTitle: str, sorted
                         brandType = 'xpro'
                     elif speed == '90' and brandType == 'x' and model == NO_MODEL:
                         model = 'n302'
+        if model == NO_MODEL:
+            if re.search(r'toshiba pendrive usb high[- ]speed', cleanedTitle):
+                model = 'u202'
+            elif 'toshiba usb 30' in cleanedTitle and 'pendrive memoria usb' in cleanedTitle:
+                model = 'ex'
+        elif model == 'n101':
+            model = NO_MODEL
     else:
         for b in brands:
             if model == NO_MODEL:

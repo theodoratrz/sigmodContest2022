@@ -13,6 +13,10 @@ NO_MEMTYPE = 'no_memtype'
 NO_COLOR = 'no_color'
 NO_CAPACITY = 'no_capacity'
 
+# for debugging
+TARGET_ID_1 = 784606
+TARGET_ID_2 = 962717
+
 def jaccardSimilarity(a: str, b: str) -> float:
     a_words = set(a.split())
     b_words = set(b.split())

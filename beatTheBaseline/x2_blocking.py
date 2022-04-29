@@ -602,10 +602,15 @@ def createInstanceInfo(instanceId: int, rawTitle: str, cleanedTitle: str, sorted
             series = 'hxs'
             if memType == NO_MEMTYPE:
                 memType = 'usb'
-        if 'flash line' in cleanedTitle:
+        if model == NO_MODEL and 'flash line' in cleanedTitle:
             model = 'flash'
+        match = re.search(r'sda[0-9]{1,3}?[ /]?(?P<capacity>[0-9]{1,3}(g|b|gb))', cleanedTitle)
+        if match:
+            capacity = re.match(r'\d+', match.group('capacity')).group()
+            model = 'sda'
         if memType == NO_MEMTYPE and ('ultimate' in cleanedTitle or 'sdcit' in cleanedTitle):
-            memType = 'microsd'
+            if memType == NO_MEMTYPE:
+                memType = 'microsd'
         if re.search(r'(dt[a-z]?[0-9]|data[ ]?t?travel?ler)', cleanedTitle):
             model = 'data traveler'
             type_model = re.search(r'(g[234]|gen[ ]?[234])', cleanedTitle)

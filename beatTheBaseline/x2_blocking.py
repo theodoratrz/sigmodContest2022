@@ -298,13 +298,18 @@ SOLVED_PAIR_SCORE = float(10.1)
 
 def getSimilarityScore(a: X2Instance, b: X2Instance) -> float:
 
-    #if a["solved"] and b["solved"]:
-    #    return SOLVED_PAIR_SCORE
-    if a['brand'] == 'sandisk' and a['brand'] == b['brand']:
-        if a['code'] == b['code'] and a['code'] != NO_CODE:
+    #if a['brand'] == 'sandisk' and a['brand'] == b['brand']:
+    #    if a['code'] == b['code'] and a['code'] != NO_CODE:
+    #        return SOLVED_PAIR_SCORE
+        #if a["capacity"] == NO_CAPACITY or a["memType"] == NO_MEMTYPE or b["capacity"] == NO_CAPACITY or b["memType"] == NO_MEMTYPE:
+        #    return SANDISK_WEIGHT
+    
+    if a['brand'] == 'samsung' and a['memType'] == 'sim':
+        if a['color'] != NO_COLOR and b['color'] == a['color']:
+            # Match Galaxy
             return SOLVED_PAIR_SCORE
-        if a["capacity"] == NO_CAPACITY or a["memType"] == NO_MEMTYPE or b["capacity"] == NO_CAPACITY or b["memType"] == NO_MEMTYPE:
-            return SANDISK_WEIGHT
+    
+    return jaccardSimilarity(a['title'], b['title'])
         
     a_words = set(a["title"].split())
     b_words = set(b["title"].split())
@@ -379,12 +384,12 @@ def findPairs(candidate_pairs: Iterable[Tuple[X2Instance, X2Instance]], save_sco
         else:
             candidate_pairs_real_ids.append((instance2["id"], instance1["id"]))
 
-        score = jaccardSimilarity(instance1['title'], instance2['title'])
+        #score = jaccardSimilarity(instance1['title'], instance2['title'])
         
-        #score = getSimilarityScore(instance1, instance2)
+        score = getSimilarityScore(instance1, instance2)
         #if score > REJECT_SCORE:
         #    jaccard_similarities.append(score)
-        #jaccard_similarities.append(score)
+        jaccard_similarities.append(score)
 
     # sort candidate pairs by similarity score.
     # In case we have more than 2000000 pairs,
@@ -603,11 +608,11 @@ def createInstanceInfo(instanceId: int, rawTitle: str, cleanedTitle: str, sorted
             memType = 'usb'
     elif brand == "samsung":
         if 'lte' in cleanedTitle:
-            for pattern in [r"galaxy [ajs][0-9]{1,2}( (plus|ultra))?",
-                        r"galaxy note[ ]?[0-9]{1,2}( (plus|ultra))?"
+            for pattern in (r"galaxy [ajs][0-9]{1,2}( (plus|ultra))?",
+                        r"galaxy note[ ]?[0-9]{1,2}( (plus|ultra))?",
                         r'[\s][a-z][0-9]{1,2}[a-z]?[\s]((plus)|\+)?',
                         r'[\s]note[\s]?[0-9]{1,2}\+?[\s]?(ultra)?',
-                        r'prime[ ]?((plus)|\+)?',]:
+                        r'prime[ ]?((plus)|\+)?'):
                 match = re.search(pattern, cleanedTitle)
                 if match:
                     model = match.group()
@@ -830,7 +835,7 @@ def assignToCluster(
                             'usb') and instance["capacity"] != NO_CAPACITY and instance["model"] != NO_MODEL:
             pattern = " || ".join((instance["brand"], instance["capacity"], instance["memType"],instance["model"])) #+model
         elif instance["memType"] != NO_MEMTYPE and instance["capacity"] != NO_CAPACITY and instance["model"] != NO_MODEL: #type != '0' and :
-            pattern = " || ".join((instance["brand"], instance["capacity"], instance["memType"],instance["model"])) #+model
+            pattern = " || ".join((instance["brand"], instance["capacity"], instance["memType"],instance["model"], instance['color'])) #+model
         else:
             sameSequenceClusters[sortedTitle].append(frozendict(instance))
             return

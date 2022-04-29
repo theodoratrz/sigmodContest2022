@@ -14,8 +14,8 @@ NO_COLOR = 'no_color'
 NO_CAPACITY = 'no_capacity'
 
 # for debugging
-TARGET_ID_1 = 784606
-TARGET_ID_2 = 962717
+TARGET_ID_1 = 956143
+TARGET_ID_2 = 956143
 
 def jaccardSimilarity(a: str, b: str) -> float:
     a_words = set(a.split())

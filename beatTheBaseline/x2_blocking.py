@@ -368,8 +368,10 @@ def findBrands(title: str, brandColumn: str):
         else:
             if re.search(r'tos-[umn][0-9]{3}', title):
                 return 'toshiba', ['toshiba']
-            else:
-                return NO_BRAND, []
+            elif re.search(r'(savage|hyperx|hxsav)', title):
+                return 'kingston', ['kingston']
+            
+            return NO_BRAND, []
 
     return brand, brands
 
@@ -592,11 +594,12 @@ def createInstanceInfo(instanceId: int, rawTitle: str, cleanedTitle: str, sorted
                             model = "premium"
                             break         
     elif brand == 'kingston':
-        if memType == NO_MEMTYPE:
-            if 'savage' in cleanedTitle or 'hx' in cleanedTitle or 'hyperx' in cleanedTitle:
-                memType = 'usb'
-            elif 'ultimate' in cleanedTitle:
-                memType = 'sd'
+        series = NO_MODEL
+        if 'savage' in cleanedTitle or 'hx' in cleanedTitle or 'hyperx' in cleanedTitle:
+            series = 'hxs'
+            memType = 'usb'
+        if memType == NO_MEMTYPE and 'ultimate' in cleanedTitle:
+            memType = 'sd'
         if re.search(r'(dt[a-z]?[0-9]|data[ ]?t?travel?ler)', cleanedTitle):
             model = 'data traveler'
             type_model = re.search(r'(g[234]|gen[ ]?[234])', cleanedTitle)
@@ -609,6 +612,10 @@ def createInstanceInfo(instanceId: int, rawTitle: str, cleanedTitle: str, sorted
                 model = 'data traveler'
         if model == 'data traveler' and memType == NO_MEMTYPE:
             memType = 'usb'
+        elif model == NO_MODEL:
+            model = series
+        if capacity == NO_CAPACITY and '32768' in cleanedTitle:
+            capacity = '32gb'
     elif brand == "samsung":
         if 'lte' in cleanedTitle:
             for pattern in (r"galaxy [ajs][0-9]{1,2}( (plus|ultra))?",
@@ -806,8 +813,10 @@ def assignToCluster(
         smartClusters[pattern].append(frozendict(instance))
 
     elif instance['brand'] == 'kingston':
-        if instance['memType'] != NO_MEMTYPE and instance['capacity'] != NO_CAPACITY:
-            pattern = " || ".join((instance['brand'], instance['capacity'], instance['memType']))
+        if instance['memType'] != NO_MEMTYPE and instance['capacity'] != NO_CAPACITY and instance['model'] != NO_MODEL:
+            pattern = " || ".join((instance['brand'], instance['capacity'], instance['memType'], instance['model']))
+        #if instance['memType'] != NO_MEMTYPE and instance['capacity'] != NO_CAPACITY:
+        #    pattern = " || ".join((instance['brand'], instance['capacity'], instance['memType']))
         else:
             sameSequenceClusters[sortedTitle].append(frozendict(instance))
             return        

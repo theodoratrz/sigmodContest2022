@@ -205,12 +205,13 @@ def acer_preprocessing(rawTitle: str, model: str) -> Tuple[str, str]:
             match = re.match(r'[a-z][0-9]-(\w+|\d+)', match.group())
             if match:
                 newModel = match.group().replace('-', ' ')
-    
+    newModel = newModel.replace('e1 572p', 'e1 572')
+
     match = re.search(ramCapacityPattern, rawTitle)
     if match:
         ram = re.search(r'[0-9]+', match.group()).group()
     
-    return newModel , ram
+    return newModel, ram
 
 def hp_preprocessing(title: str, model: str) -> Tuple[str, str]:
     newModel = re.sub(r'(elitebook|folio|elitebook folio)', r'ebf', model)

@@ -1,5 +1,5 @@
 import csv
-from x1_blocking import SOLVED_PAIR_SCORE
+from x2_blocking import SANDISK_WEIGHT, SOLVED_PAIR_SCORE
 
 from utils import TARGET_DATASET
 

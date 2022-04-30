@@ -5,7 +5,7 @@ from utils import TARGET_DATASET
 
 with open('output.csv') as outFile:
     outRows = [[r[0], r[1]] for r in csv.reader(outFile)][1:]
-    #outRows = [[r[0], r[1]] for r in csv.reader(outFile) if r[2] == str(SANDISK_WEIGHT)][1:]
+    #outRows = [[r[0], r[1]] for r in csv.reader(outFile) if r[2] == str(SOLVED_PAIR_SCORE)][1:]
 with open(f"../datasets/Y{TARGET_DATASET}.csv") as trueFile:
     trueRows = [r for r in csv.reader(trueFile)][1:]
 

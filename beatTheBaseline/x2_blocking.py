@@ -58,8 +58,7 @@ trashPhrases = [
     #r"flash",
     r"memory",
     r"tarjeta",
-    r"m[eé]mo(ria|ire)",
-    r"class[e]? "
+    r"m[eé]mo(ria|ire)"
 ]
 trashPattern = re.compile('|'.join(trashPhrases))
 
@@ -311,6 +310,10 @@ def getSimilarityScore(a: X2Instance, b: X2Instance) -> float:
         if a['color'] != NO_COLOR and b['color'] == a['color']:
             # Match Galaxy
             return SOLVED_PAIR_SCORE
+    #elif a['brand'] == 'sony' and a['model'] != NO_MODEL and a['model'] == b['model'] \
+    #    and a['capacity'] != NO_CAPACITY and a['capacity'] == b['capacity'] \
+    #    and a['memType'] != NO_MEMTYPE and a['memType'] == b['memType']:
+    #    return SOLVED_PAIR_SCORE
     
     return jaccardSimilarity(a['title'], b['title'])
         
@@ -455,12 +458,20 @@ def createInstanceInfo(instanceId: int, rawTitle: str, cleanedTitle: str, sorted
             elif 'usm' in cleanedTitle or capacity == '1tb' or 'speicherstick' in cleanedTitle:
                 memType = 'usb'
         
-        match = re.search(r'(sf|usm)[-]?[0-9a-z]{1,6}', cleanedTitle)
+        match = re.search(r'(sf|sr|usm)[-]?[0-9a-z]{1,6}', cleanedTitle)
+        if not match and re.search(r'class[ ]?4', cleanedTitle) and capacity == '16gb':
+            match = re.match('sf16n4', 'sf16n4')
+        elif not match and re.search(r'class[ ]?(6|10)', cleanedTitle) and capacity == '8gb':
+            match = re.match('sf8u', 'sf8u')
+        #elif not match and re.search(r'class[ ]?10', cleanedTitle) and capacity == '128gb':
+        #    match = re.match('srg1uxa', 'srg1uxa')
         if match:
             model = match.group().replace('-', '').replace('g', '')
             if capacity == NO_CAPACITY:
-                capacity_match = re.search(r'[0-9]+', cleanedTitle)
+                #capacity_match = re.findall(r'(128|16|64|8|256|512)', model)
+                capacity_match = re.search(r'[0-9]+', model)
                 if capacity_match:
+                    #capacity = max(capacity_match, key = lambda n: len(n)) + 'gb'
                     capacity = capacity_match.group() + 'gb'
             for c in range(ord('0'), ord('9')):
                 model = model.replace(chr(c), '')
@@ -562,13 +573,13 @@ def createInstanceInfo(instanceId: int, rawTitle: str, cleanedTitle: str, sorted
             model = match.group().strip() \
                 .replace('x', '').replace('l', '').replace('j', '').replace('d', '') \
                 .replace('b', '').replace('e', '').replace('u', '')
-        if memType == NO_MEMTYPE:
-            if 'drive' in cleanedTitle:
-                memType = 'usb'
+        if 'drive' in cleanedTitle:
+            memType = 'usb'
         if 'lexar 8gb jumpdrive v10 8gb usb 2.0 tipo-a blu' in cleanedTitle:
             model = 'c20c'
             capacity = '128gb'
-            
+        if capacity == NO_CAPACITY and 'ljdc20m' in cleanedTitle:
+            capacity = '128gb'
 
     elif brand == 'intenso':
         match = re.search(r'[0-9]{7}', cleanedTitle)

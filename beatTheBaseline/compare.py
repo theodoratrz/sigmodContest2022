@@ -25,25 +25,25 @@ with open(f"../datasets/X{TARGET_DATASET}.csv") as instancesFile:
         instances[row[0]] = row[1]
 
 missedTitles = [(instances[r[0]], instances[r[1]]) for r in missed]
+commonTitles = [(instances[r[0]], instances[r[1]]) for r in common]
 falseTitles = [(instances[r[0]], instances[r[1]]) for r in falsePositives]
 trueTitles = [(instances[r[0]], instances[r[1]]) for r in trueRows]
 
 with open("missed.csv", mode="w") as missedCsv:
     writer = csv.writer(missedCsv)
-
     writer.writerows(missedTitles)
 
 with open("false.csv", mode="w") as falseCsv:
     writer = csv.writer(falseCsv)
-
     writer.writerows(falseTitles)
-pass
 
 with open("true.csv", mode="w") as trueCsv:
     writer = csv.writer(trueCsv)
-
     writer.writerows(trueTitles)
-pass
+
+with open("common.csv", mode="w") as commonCsv:
+    writer = csv.writer(commonCsv)
+    writer.writerows(commonTitles)
 
 print(f"Common: {len(common)}")
 print(f"Missed: {len(missed)}")

@@ -279,10 +279,10 @@ def unifyCapacities(s: str):
 
 separatedCapacityPattern = r'(?P<size>[0-9]{1,3}) (?P<unit>[gt][bo])'
 unifiedCapacityPattern = r'\g<size>\g<unit>'
-capacityPattern = r'[0-9]{1,3}[gt][bo]'
+capacityPattern = r'[0-9]{1,4}[gt][bo]'
 # Use these with `re.search` only.
 capacityUnitPattern = r'(^| )g[bo]($| )'
-capacitySizesPattern = r'(^| )(4|8|16|32|64|128|256|512)($| )'
+capacitySizesPattern = r'(^| )(4|8|16|32|64|128|256|512|1000)($| )'
 
 numberPattern = r'[0-9]+(\.[0-9]+)?'
 NUMBER_WEIGHT = 0.1
@@ -355,10 +355,12 @@ def getSimilarityScore(a: X2Instance, b: X2Instance) -> float:
     
     return weighted_sum/max(len(a_words), len(b_words))
 
-def findBrands(title: str, brandColumn: str):
+def findBrands(sortedTitle: str, rawTitle: str, brandColumn: str):
     brands = []
+    if re.search(r'attach[eé] [34]', rawTitle):
+        return 'pny', ['pny']
     for brand in brandPatterns:
-        match = re.search(brand, title)
+        match = re.search(brand, sortedTitle)
         if match:
             brands.append(match.group())
     if len(brands):
@@ -369,11 +371,14 @@ def findBrands(title: str, brandColumn: str):
             brand = match.group()
             return brand, [brand]
         else:
-            if re.search(r'tos-[umn][0-9]{3}', title):
+            if re.search(r'tos-[umn][0-9]{3}', sortedTitle):
                 return 'toshiba', ['toshiba']
-            elif re.search(r'(savage|hyperx|hxsav)', title):
+            elif re.search(r'(savage|hyperx|hxsav)', sortedTitle):
                 return 'kingston', ['kingston']
-            
+            elif re.search(r'(cru[i]?zer( blade)?)', sortedTitle):
+                return 'sandisk', ['sandisk']
+            elif '64gb sdhc uhs-ii card' in rawTitle:
+                return 'transcend', ['transcend']
             return NO_BRAND, []
 
     return brand, brands
@@ -443,13 +448,15 @@ def createInstanceInfo(instanceId: int, rawTitle: str, cleanedTitle: str, sorted
             capacity = NO_CAPACITY
     else:
         capacity = capacity.group().replace('o','b')
+        if capacity == '1000gb':
+            capacity = '1tb'
 
     model = NO_MODEL
     itemCode = NO_CODE
     brandType = NO_TYPE
 
     # Sony logic
-    if brand == 'sony':            
+    if brand == 'sony':
         if memType == NO_MEMTYPE:
             microPattern = (r'uy', r'sr')
             for p in microPattern:
@@ -499,6 +506,12 @@ def createInstanceInfo(instanceId: int, rawTitle: str, cleanedTitle: str, sorted
                     'g',
                     '')
                 model = model.replace('series', '').replace('serie', '')
+        if re.search(r'hd[-]?sl[ ]?1', rawTitle):
+            model = 'hdsl1'
+            capacity = '1tb'
+            memType = 'usb'
+        if model == NO_MODEL and 'dd2.5 1tb' in rawTitle:
+            model = 'hdsl1'
                 
     elif brand == 'sandisk':
 
@@ -940,7 +953,7 @@ def x2_blocking(csv_reader: csv.DictReader, id_col: str, title_col: str, brand_c
         unique_words = {word: None for word in clean_words if word not in string.punctuation}.keys()
         sortedTitle = ' '.join(unique_words)
 
-        brand, brands = findBrands(sortedTitle, row[brand_col])
+        brand, brands = findBrands(sortedTitle, rawTitle, row[brand_col])
         if brand == NO_BRAND:
             continue
 

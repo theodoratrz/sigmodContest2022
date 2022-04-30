@@ -1,4 +1,4 @@
-SUBMISSION_MODE = False
+SUBMISSION_MODE = True
 TARGET_DATASET = '2'
 
 # Do not ingore anything in submission
@@ -16,8 +16,8 @@ NO_COLOR = 'no_color'
 NO_CAPACITY = 'no_capacity'
 
 # for debugging
-TARGET_ID_1 = 47884
-TARGET_ID_2 = 873151
+TARGET_ID_1 = 52403
+TARGET_ID_2 = 52403
 
 def jaccardSimilarity(a: str, b: str) -> float:
     a_words = set(a.split())

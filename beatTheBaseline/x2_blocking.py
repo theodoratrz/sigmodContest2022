@@ -451,12 +451,18 @@ def createInstanceInfo(instanceId: int, rawTitle: str, cleanedTitle: str, sorted
     # Sony logic
     if brand == 'sony':            
         if memType == NO_MEMTYPE:
-            if 'ux' in cleanedTitle or 'uy' in cleanedTitle or 'sr' in cleanedTitle:
-                memType = 'microsd'
-            elif 'uf' in cleanedTitle or 'speicherkarte' in cleanedTitle:
-                memType = 'sd'
-            elif 'usm' in cleanedTitle or capacity == '1tb' or 'speicherstick' in cleanedTitle:
-                memType = 'usb'
+            microPattern = (r'uy', r'sr')
+            for p in microPattern:
+                if re.search(p,cleanedTitle):
+                    memType = 'microsd'
+            sdPattern = (r'uf', r'sf', r'speicherkarte')
+            for p in sdPattern:
+                if re.search(p,cleanedTitle):
+                    memType = 'sd'
+            usbPattern = (r'usm', r'1tb', r'speicherstick')
+            for p in usbPattern:
+                if re.search(p,cleanedTitle):
+                    memType = 'usb'
         
         match = re.search(r'(sf|sr|usm)[-]?[0-9a-z]{1,6}', cleanedTitle)
         if not match and re.search(r'class[ ]?4', cleanedTitle) and capacity == '16gb':
@@ -475,8 +481,6 @@ def createInstanceInfo(instanceId: int, rawTitle: str, cleanedTitle: str, sorted
                     capacity = capacity_match.group() + 'gb'
             for c in range(ord('0'), ord('9')):
                 model = model.replace(chr(c), '')
-            if 'sf' in model and memType == NO_MEMTYPE:
-                memType = 'sd'
             model = model.replace('sf', '').replace('usm', '')
         elif memType in ('usb', 'sd'):
             if 'machqx' in cleanedTitle:
@@ -578,8 +582,9 @@ def createInstanceInfo(instanceId: int, rawTitle: str, cleanedTitle: str, sorted
         if 'lexar 8gb jumpdrive v10 8gb usb 2.0 tipo-a blu' in cleanedTitle:
             model = 'c20c'
             capacity = '128gb'
-        if capacity == NO_CAPACITY and 'ljdc20m' in cleanedTitle:
+        if capacity == NO_CAPACITY and 'ljdc20' in cleanedTitle:
             capacity = '128gb'
+        
 
     elif brand == 'intenso':
         match = re.search(r'[0-9]{7}', cleanedTitle)
@@ -619,11 +624,10 @@ def createInstanceInfo(instanceId: int, rawTitle: str, cleanedTitle: str, sorted
             model = 'flash'
         match = re.search(r'sda[0-9]{1,3}?[ /]?(?P<capacity>[0-9]{1,3}(g|b|gb))', cleanedTitle)
         if match:
-            capacity = re.match(r'\d+', match.group('capacity')).group()
+            capacity = re.match(r'\d+', match.group('capacity')).group() + "gb"
             model = 'sda'
-        if memType == NO_MEMTYPE and ('ultimate' in cleanedTitle or 'sdcit' in cleanedTitle):
-            if memType == NO_MEMTYPE:
-                memType = 'microsd'
+        if 'ultimate' in cleanedTitle:
+                capacity = '16gb'
         if re.search(r'(dt[a-z]?[0-9]|data[ ]?t?travel?ler)', cleanedTitle):
             model = 'data traveler'
             type_model = re.search(r'(g[234]|gen[ ]?[234])', cleanedTitle)
@@ -640,6 +644,7 @@ def createInstanceInfo(instanceId: int, rawTitle: str, cleanedTitle: str, sorted
             model = series
         if capacity == NO_CAPACITY and '32768' in cleanedTitle:
             capacity = '32gb'
+        
     elif brand == "samsung":
         if 'lte' in cleanedTitle:
             for pattern in (r"galaxy [ajs][0-9]{1,2}( (plus|ultra))?",
@@ -686,6 +691,8 @@ def createInstanceInfo(instanceId: int, rawTitle: str, cleanedTitle: str, sorted
                 memType = 'usb' 
             if capacity == NO_CAPACITY and 'fd128att430' in cleanedTitle:
                 capacity = "128gb"
+        if capacity == NO_CAPACITY and memType == 'usb' and model == 'att4':
+            capacity = '8gb'
     elif brand == 'toshiba':
         match = re.search(r'(?P<model>[mnu][0-9]{3})(.*(?P<capacity>(008|016|064|128|256|512)))?', cleanedTitle)
         if match:
@@ -714,6 +721,9 @@ def createInstanceInfo(instanceId: int, rawTitle: str, cleanedTitle: str, sorted
                     memType = 'microsd'
         elif model == NO_MODEL and (('hayaqa' in cleanedTitle) or ('hayabusa' in cleanedTitle)):
             model = 'u202'
+        if model == NO_MODEL and 'sd-xpro32uhs2' in cleanedTitle:
+            brandType = 'xpro'
+            memType = 'sd'
         if memType == 'sd' and model == NO_MODEL:
             if re.search(r'silber', cleanedTitle):
                 model = 'n401'
@@ -800,7 +810,7 @@ def assignToCluster(
     smartClusters: Dict[str, List[X2Instance]]):
 
     if instance['brand'] == 'sony':
-        #if (instance['memType'] == 'microsd' or instance['capacity'] == '1tb') and instance['capacity'] != NO_CAPACITY:
+        #if (instance['memType'] in ('microsd', 'sd') or instance['capacity'] == '1tb') and instance['capacity'] != NO_CAPACITY:
          #   pattern = " || ".join((instance['brand'], instance['capacity'], instance['memType'], instance['model']))
         if instance['memType'] != NO_MEMTYPE and instance['capacity'] != NO_CAPACITY and instance['model'] != NO_MODEL:
             pattern = " || ".join((instance['brand'], instance['capacity'], instance['memType'], instance['model']))

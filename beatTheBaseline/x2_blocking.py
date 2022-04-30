@@ -584,27 +584,29 @@ def createInstanceInfo(instanceId: int, rawTitle: str, cleanedTitle: str, sorted
     elif brand == 'intenso':
         match = re.search(r'[0-9]{7}', cleanedTitle)
         if match is not None:
-            type = match.group()[:]
+            model = match.group()
+            if model == '3534490' and capacity == NO_CAPACITY:
+                capacity = '64gb'
 
-        type_model = re.search(r'(high\s)?[a-z]+\s(?=line)', cleanedTitle)
-        if type_model is not None:
-                model = type_model.group()[:].replace(' ', '')
+        match = re.search(r'(high\s)?[a-z]+\s(?=line)', cleanedTitle)
+        if match is not None:
+                brandType = match.group().replace(' ', '')
 
         elif model in intensoIdToModel.keys():
-            model = intensoIdToModel[model]
-        if model == NO_MODEL:
+            brandType = intensoIdToModel[model]
+        if brandType == NO_TYPE:
             match = re.search(r"basic",cleanedTitle)
             if match:
-                model = "basic"
+                brandType = "basic"
             else:
                 match = re.search(r"rainbow", cleanedTitle)
                 if match:
-                    model = "rainbow"
+                    brandType = "rainbow"
                 else:
                     for p in [r"premium", r"llave", r"tipo a plata"]:
                         match = re.search(p, cleanedTitle)
                         if match:
-                            model = "premium"
+                            brandType = "premium"
                             break         
     elif brand == 'kingston':
         series = NO_MODEL
@@ -738,7 +740,13 @@ def createInstanceInfo(instanceId: int, rawTitle: str, cleanedTitle: str, sorted
                 model = 'ex'
         elif model == 'n101':
             model = NO_MODEL
-
+    elif brand == 'transcend':
+        match = re.search(r'ts(?P<capacity>(8|16|32|64|128|256|512)g)sd[a-z0-9]{3}', cleanedTitle)
+        if match:
+            if capacity == NO_CAPACITY:
+                capacity = match.group('capacity') + 'b'
+            if memType == NO_MEMTYPE:
+                memType = 'sd'
     else:
         for b in brands:
             if model == NO_MODEL:
@@ -826,8 +834,8 @@ def assignToCluster(
         smartClusters[pattern].append(frozendict(instance))
 
     elif instance['brand'] == 'intenso':
-        if instance['capacity'] != NO_CAPACITY and instance['model'] != NO_MODEL:
-            pattern = " || ".join((instance['brand'], instance['capacity'], instance['model']))
+        if instance['capacity'] != NO_CAPACITY and instance['type'] != NO_TYPE:
+            pattern = " || ".join((instance['brand'], instance['capacity'], instance['type']))
         else:
             sameSequenceClusters[sortedTitle].append(frozendict(instance))
             return        

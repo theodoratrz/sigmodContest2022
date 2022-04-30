@@ -522,9 +522,9 @@ def createInstanceInfo(instanceId: int, rawTitle: str, cleanedTitle: str, sorted
                 match = re.search(r'sd[a-z]{2}[0-9]+/(?P<capacity>[0-9]{1,3}[ ]?g[b]?)[a-z]', rawTitle)
                 if not match:
                     match = re.search(r'lsd[a-z]*(?P<capacity>[0-9]{1,3}(g|b|gb)?)[a-z0-9]{8,9}', cleanedTitle)
-                    pass
 
         if match:
+            model = re.sub(r'[ -]', '', match.group())
             itemCode = re.sub(r'[ -]', '', match.group())
             if capacity == NO_CAPACITY:
                 capacity = re.match(r'\d+', match.group('capacity')).group()
@@ -570,15 +570,32 @@ def createInstanceInfo(instanceId: int, rawTitle: str, cleanedTitle: str, sorted
                                     r'double connect.*', cleanedTitle)
                             if match is not None:
                                 model = 'ultra'
+                            else:
+                                match = re.search(r"[0-9]{7}", cleanedTitle)
+                                if match and model == NO_MODEL:
+                                    model = match.group()
+                                elif 'usm' in cleanedTitle:
+                                    model = 'usm'
+                                elif 'cruzer' in cleanedTitle:
+                                    model = 'cruzer'
+                                elif 'cartm dtig4' in cleanedTitle:
+                                    model = "cartm"
+                                elif 'dtig4' in cleanedTitle:
+                                    model = "dti"
+                                
+        if 'line' in cleanedTitle :
+            model = 'line'
         if ('type-c' in cleanedTitle or 'type c' in cleanedTitle):
-                model = 'ca'
-
-        if 'adapter' in cleanedTitle or 'adaptateur' in cleanedTitle:
+            model = 'ca'
+        if ('type-a' in cleanedTitle or 'type a' in cleanedTitle) and model == NO_MODEL:
+            model = 'typea'
+        if ('adapter' in cleanedTitle or 'adaptateur' in cleanedTitle) :
             memType = 'microsd'
         if 'accessoires' in cleanedTitle:
             memType = 'microsd'
             capacity = "32gb"
             model = 'ultra+'
+            
     elif brand == 'lexar':
         match = re.search(
             r'((jd)|[\s])[a-wy-z][0-9]{2}[a-z]?', cleanedTitle)
@@ -838,7 +855,7 @@ def assignToCluster(
             instance['solved'] = True
             pattern = " || ".join((instance['brand'], instance['code'], instance['memType']))
             smartClusters[pattern].append(frozendict(instance))
-        if instance['memType'] != NO_MEMTYPE and instance['capacity'] != NO_CAPACITY and instance['model'] != NO_MODEL:
+        if instance['memType'] != NO_MEMTYPE and instance['capacity'] != NO_CAPACITY: #and instance['model'] != NO_MODEL:
             pattern = " || ".join((instance['brand'], instance['capacity'], instance['memType'], instance['model']))
         else:
             instance['solved'] = False

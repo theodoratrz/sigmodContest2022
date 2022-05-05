@@ -299,24 +299,14 @@ REJECT_SCORE = -1
 SOLVED_PAIR_SCORE = float(10.1)
 
 def getSimilarityScore(a: X2Instance, b: X2Instance) -> float:
-
-    #if a['brand'] == 'sandisk' and a['brand'] == b['brand']:
-    #    if a['code'] == b['code'] and a['code'] != NO_CODE:
-    #        return SOLVED_PAIR_SCORE
-        #if a["capacity"] == NO_CAPACITY or a["memType"] == NO_MEMTYPE or b["capacity"] == NO_CAPACITY or b["memType"] == NO_MEMTYPE:
-        #    return SANDISK_WEIGHT
     
     if a['brand'] == 'samsung' and a['memType'] == 'sim':
         if a['color'] != NO_COLOR and b['color'] == a['color']:
             # Match Galaxy
             return SOLVED_PAIR_SCORE
-    #elif a['brand'] == 'sony' and a['model'] != NO_MODEL and a['model'] == b['model'] \
-    #    and a['capacity'] != NO_CAPACITY and a['capacity'] == b['capacity'] \
-    #    and a['memType'] != NO_MEMTYPE and a['memType'] == b['memType']:
-    #    return SOLVED_PAIR_SCORE
     
     return jaccardSimilarity(a['title'], b['title'])
-        
+
     a_words = set(a["title"].split())
     b_words = set(b["title"].split())
     if len(a_words) == 0 or len(b_words) == 0:

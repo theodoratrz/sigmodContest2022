@@ -101,8 +101,8 @@ def save_output(X1_candidate_pairs,
 
 
 # read the datasets
-X1 = pd.read_csv("X1.csv")
-X2 = pd.read_csv("X2.csv")
+X1 = pd.read_csv("../datasets/X1.csv")
+X2 = pd.read_csv("../datasets/X2.csv")
 
 # perform blocking
 X1_candidate_pairs = block_with_attr(X1, attr="title")

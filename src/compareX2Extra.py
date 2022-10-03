@@ -40,10 +40,10 @@ def pairToRowDict(pair: List[str]):
     return {title: instances[pair[i]][j] for title, (i, j) in titleToCell.items()}
 
 fileRows: List[Tuple[ str, List[List[str]] ]] = [
-    ("true.csv", trueRows),
-    ("../output/common.csv", common),
-    ("missed.csv", missed),
-    ("false.csv", falsePositives)
+    ("../output_misc/true.csv", trueRows),
+    ("../output_misc/common.csv", common),
+    ("../output_misc/missed.csv", missed),
+    ("../output_misc/false.csv", falsePositives)
 ]
 
 for filename, rows in fileRows:

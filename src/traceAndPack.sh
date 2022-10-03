@@ -3,10 +3,11 @@
 # exit immediately if anything fails
 set -e
 
+# Reprozip complains when __pycache__ files are read & written
+rm -f ./__pycache__/*
+
 if [ -d __pycache__ ]; then
-    # Reprozip complains when __pycache__ files are read & written
-    rm __pycache__/*
-    rmdir __pycache__
+    rmdir ./__pycache__
 fi
 
 echo "----------------- Running -----------------"
